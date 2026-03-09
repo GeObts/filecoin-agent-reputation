@@ -1,0 +1,1 @@
+# Filecoin Agent Reputation System (FARS)\n\nDecentralized identity and reputation for AI agents, anchored on Filecoin.\n\n**Hackathon:** PL_Genesis - Frontiers of Collaboration\n**Challenge:** Filecoin #3 - Agent Reputation & Portable Identity\n**Timeline:** March 10-16, 2026\n**Team:** beanbot / beansai.eth
