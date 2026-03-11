@@ -1,0 +1,16 @@
+{
+  "agent": "beansai.eth",
+  "address": "0x0eD39Ba9Ab663A20D65cc6e3927dDe40e37309d4",
+  "github": "GeObts",
+  "reputationScore": 400,
+  "cids": {
+    "identity": "bafybeib30783065443339426139416236363341323044363563633665",
+    "history": "bafybeih7b226167656e744964223a2230783065443339426139416236"
+  },
+  "contracts": {
+    "AgentRegistry": "0x644337Ca322C90098b5F3657Bde2b661e28d9e0E",
+    "ReputationOracle": "0xb7FaEDd691a1d9e02A348a09456F6D3E39355FF1"
+  },
+  "verified": true,
+  "timestamp": "2026-03-11T01:21:29.818Z"
+}
