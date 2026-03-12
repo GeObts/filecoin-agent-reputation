@@ -513,4 +513,7 @@ MIT License - see [LICENSE](./LICENSE) for details.
 - TypeScript (Backend)
 - Node.js (CLI)
 
+<<<<<<< HEAD
 **Hackathon:** PL_Genesis - Frontiers of Collaboration (March 2026)
+=======
+>>>>>>> 6b5457b95709baa3b3ce27057aea5d4226f98ee3
