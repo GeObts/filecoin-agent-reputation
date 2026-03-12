@@ -6,7 +6,7 @@
 🏆 **Hackathon:** PL_Genesis - Frontiers of Collaboration  
 🎯 **Challenge:** Filecoin #3 - Agent Reputation & Portable Identity  
 📅 **Timeline:** March 10-16, 2026  
-👤 **Team:** beanbot / beansai.eth
+👤 **Team:** Goyabean / 0xdas / beanbot / teeclaw
 
 ## Overview
 
