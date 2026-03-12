@@ -1,157 +1,180 @@
-# Quick Start Guide - FARS
+# Quick Start Guide
 
-## Day 1 Progress ✅
+## Overview
 
-**Completed:**
-- ✅ Project structure created
-- ✅ Smart contracts implemented (AgentRegistry + ReputationOracle)
-- ✅ Backend services built (Synapse + Reputation)
-- ✅ API endpoints designed
-- ✅ TypeScript configuration
+This guide walks you through registering an AI agent on FARS and verifying its identity.
 
-**Next Steps:**
+---
+
+## Prerequisites
+
+- Node.js 18+ installed
+- Ethereum wallet with Base Sepolia testnet ETH
+- GitHub account (for contribution proofs)
+
+---
+
+## Setup
 
 ### 1. Install Dependencies
 
 ```bash
-cd ~/.openclaw/workspace/filecoin-agent-reputation/backend
-pnpm install
+# Backend
+cd backend
+npm install
+
+# CLI
+cd ../cli
+npm install
 ```
 
 ### 2. Configure Environment
 
-```bash
-cp .env.example .env
-# Edit .env and add:
-# - Your private key (for Filecoin testnet)
-# - GitHub token (from ~/.github-token)
-```
-
-### 3. Get Testnet Tokens
-
-**Filecoin Calibration:**
-- Visit: https://faucet.calibration.fildev.network/
-- Request test FIL for your wallet
-
-**Base Sepolia:**
-- Visit: https://faucet.quicknode.com/base/sepolia
-- Request test ETH
-
-### 4. Deploy Smart Contracts
+Create `backend/.env`:
 
 ```bash
-# Option 1: Using Remix IDE (easiest)
-# 1. Go to https://remix.ethereum.org/
-# 2. Copy contracts/src/AgentRegistry.sol
-# 3. Compile with Solidity 0.8.20+
-# 4. Deploy to Base Sepolia
-# 5. Save contract address to .env
+PRIVATE_KEY=your_private_key_here
+WALLET_ADDRESS=your_wallet_address_here
+GITHUB_TOKEN=your_github_token_here
 
-# Option 2: Using Foundry (if installed)
-cd contracts
-forge build
-forge create --rpc-url $BASE_SEPOLIA_RPC \
-  --private-key $PRIVATE_KEY \
-  src/AgentRegistry.sol:AgentRegistry
+AGENT_REGISTRY_ADDRESS=0x644337Ca322C90098b5F3657Bde2b661e28d9e0E
+REPUTATION_ORACLE_ADDRESS=0xb7FaEDd691a1d9e02A348a09456F6D3E39355FF1
+
+BASE_SEPOLIA_RPC=https://sepolia.base.org
+FILECOIN_CALIBRATION_RPC=https://api.calibration.node.glif.io/rpc/v1
 ```
 
-### 5. Run Backend
+### 3. Get Testnet ETH
+
+Get Base Sepolia ETH from: https://www.coinbase.com/faucets/base-ethereum-sepolia-faucet
+
+---
+
+## Register an Agent
+
+### Step 1: Start the Backend
 
 ```bash
 cd backend
-pnpm dev
+npm start
 ```
 
-Server will start on http://localhost:3000
+Server runs on `http://localhost:3000`
 
-### 6. Test API
+### Step 2: Register via CLI
 
 ```bash
-# Health check
-curl http://localhost:3000/health
+cd cli
 
-# Create identity (example)
-curl -X POST http://localhost:3000/api/identity/create \
-  -H "Content-Type: application/json" \
-  -d '{
-    "agentId": "0x0eD39Ba9Ab663A20D65cc6e3927dDe40e37309d4",
-    "name": "beansai.eth",
-    "type": "autonomous_agent",
-    "capabilities": ["trading", "code_contribution"],
-    "metadata": {
-      "ens": "beansai.eth",
-      "erc8004": "14450"
-    }
-  }'
+npm run register -- \
+  --name "MyAgent" \
+  --description "AI coding assistant" \
+  --github-id 12345
 ```
 
-### 7. Register beansai.eth Agent
+**Response:**
+```json
+{
+  "tx": "0x...",
+  "agentAddress": "0x...",
+  "stateCID": "bafy..."
+}
+```
+
+### Step 3: Verify Registration
 
 ```bash
-curl -X POST http://localhost:3000/api/agent/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "agentId": "0x0eD39Ba9Ab663A20D65cc6e3927dDe40e37309d4",
-    "name": "beansai.eth",
-    "type": "autonomous_agent",
-    "capabilities": ["trading", "code_contribution", "on_chain_operations"],
-    "metadata": {
-      "ens": "beansai.eth",
-      "erc8004": { "agentId": "14450" }
-    },
-    "githubUsername": "GeObts"
-  }'
+npm run verify -- --address 0x...
 ```
 
-This will:
-1. Create identity document → upload to Filecoin
-2. Fetch GitHub PRs from @GeObts
-3. Calculate reputation score
-4. Upload history + proof to Filecoin
-5. Return all CIDs
-
-## API Endpoints
-
-### Identity
-- `POST /api/identity/create` - Create agent identity
-- `GET /api/identity/:cid` - Retrieve identity from Filecoin
-
-### Reputation
-- `POST /api/reputation/calculate` - Calculate reputation
-- `GET /api/history/:cid` - Get action history
-- `GET /api/proof/:cid` - Get proof-of-history
-
-### Full Registration
-- `POST /api/agent/register` - Complete agent registration
-
-## Project Structure
-
+**Output:**
 ```
-backend/
-├── src/
-│   ├── services/
-│   │   ├── synapse.ts       # Filecoin storage via Synapse SDK
-│   │   └── reputation.ts    # Reputation calculation
-│   ├── api/
-│   │   └── routes.ts        # API endpoints
-│   └── index.ts             # Server entry point
-├── package.json
-├── tsconfig.json
-└── .env
-
-contracts/
-└── src/
-    ├── AgentRegistry.sol    # Agent identity registry
-    └── ReputationOracle.sol # Reputation scores with proofs
+✅ Agent verified on-chain
+Name: MyAgent
+State CID: bafy...
+Reputation: 0
 ```
 
-## Day 2 Plan
+---
 
-**Tomorrow (March 10):**
-1. Deploy contracts to Base Sepolia
-2. Test Synapse SDK with real Filecoin Calibration testnet
-3. Create beansai.eth identity on Filecoin
-4. Fetch real GitHub PR history
-5. Calculate and store reputation
+## Update Reputation
 
-**Target:** beansai.eth agent fully registered with live CIDs
+After the agent completes work (e.g., GitHub PRs, smart contract deployments), update reputation:
+
+```bash
+npm run score -- \
+  --address 0x... \
+  --score 400
+```
+
+The backend will:
+1. Generate contribution proofs
+2. Upload state to Filecoin
+3. Update on-chain reputation
+
+---
+
+## Query Agent Data
+
+### Via CLI
+
+```bash
+npm run verify -- --address 0x...
+```
+
+### Via API
+
+```bash
+curl http://localhost:3000/api/agents/0x...
+```
+
+**Response:**
+```json
+{
+  "name": "MyAgent",
+  "description": "AI coding assistant",
+  "reputationScore": 400,
+  "stateCID": "bafy...",
+  "verified": true,
+  "contributions": [...]
+}
+```
+
+---
+
+## Next Steps
+
+- **Build integrations**: Use the REST API in your applications
+- **Add contribution types**: Extend proof generation for new work types
+- **Deploy to mainnet**: Move from testnet to production
+- **Create frontend**: Build a UI for agent discovery
+
+---
+
+## Troubleshooting
+
+### Transaction Reverts
+
+- Check wallet has sufficient Base Sepolia ETH
+- Verify contract addresses match deployed versions
+- Ensure RPC endpoint is accessible
+
+### State Upload Fails
+
+- Verify Filecoin RPC endpoint is correct
+- Check Synapse SDK credentials (if using authenticated storage)
+
+### API Errors
+
+- Confirm backend is running (`npm start`)
+- Check `.env` configuration
+- Verify private key format (0x prefix)
+
+---
+
+## Resources
+
+- [Contract Addresses](../README.md#smart-contracts)
+- [API Reference](./API.md)
+- [Architecture](../HOW_IT_WORKS.md)
+- [Base Sepolia Explorer](https://sepolia.basescan.org/)
