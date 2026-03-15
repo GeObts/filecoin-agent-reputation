@@ -13,7 +13,13 @@
       "Bash(findstr:*)",
       "Bash(del \"D:\\\\Harry\\\\BasedNouns\\\\CodeProject\\\\filecoin-agent-reputation\\\\frontend\\\\src\\\\app\\\\favicon.ico\")",
       "WebSearch",
-      "Bash(pnpm add:*)"
+      "Bash(pnpm add:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(gh api:*)",
+      "Bash(git ls-files:*)",
+      "Bash(npm run dev:*)",
+      "Bash(node -e:*)",
+      "Bash(npm run build:*)"
     ]
   }
 }

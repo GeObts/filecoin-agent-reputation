@@ -8,23 +8,28 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, XCircle, Search } from "lucide-react";
 import { useAgentProfile } from "@/hooks/useAgentProfile";
-import { getIdentity, getHistory } from "@/lib/api";
+import { useFilecoinIdentity, useFilecoinHistory } from "@/hooks/useFilecoinData";
 import { isValidAddress, truncateCid } from "@/lib/utils";
 import { toast } from "sonner";
 import { useGsapEntrance, useGsapStagger } from "@/hooks/useGsap";
-
-interface FilecoinData {
-  identity: Record<string, unknown> | null;
-  history: Record<string, unknown> | null;
-}
 
 export default function VerifyPage() {
   const [address, setAddress] = useState("");
   const [searchAddress, setSearchAddress] = useState<`0x${string}` | undefined>();
   const { profile, isLoading } = useAgentProfile(searchAddress);
 
-  const [filecoinData, setFilecoinData] = useState<FilecoinData>({ identity: null, history: null });
-  const [filecoinLoading, setFilecoinLoading] = useState(false);
+  const [loadFilecoin, setLoadFilecoin] = useState(false);
+
+  const identityQuery = useFilecoinIdentity(profile?.identity.identityCID, { enabled: loadFilecoin });
+  const historyQuery = useFilecoinHistory(profile?.reputation.historyCID, { enabled: loadFilecoin });
+
+  const filecoinLoading = identityQuery.isLoading || historyQuery.isLoading;
+  const filecoinIdentity = identityQuery.data
+    ? (identityQuery.data as { identity: Record<string, unknown> }).identity
+    : null;
+  const filecoinHistory = historyQuery.data
+    ? (historyQuery.data as { history: Record<string, unknown> }).history
+    : null;
 
   const headerRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
@@ -41,39 +46,15 @@ export default function VerifyPage() {
       return;
     }
     setSearchAddress(trimmed as `0x${string}`);
-    setFilecoinData({ identity: null, history: null });
+    setLoadFilecoin(false);
   };
 
-  const loadFilecoinData = async () => {
-    if (!profile) return;
-    setFilecoinLoading(true);
-    try {
-      const [identityResult, historyResult] = await Promise.allSettled([
-        profile.identity.identityCID
-          ? getIdentity(profile.identity.identityCID)
-          : Promise.resolve(null),
-        profile.reputation.historyCID
-          ? getHistory(profile.reputation.historyCID)
-          : Promise.resolve(null),
-      ]);
-
-      setFilecoinData({
-        identity: identityResult.status === "fulfilled" && identityResult.value
-          ? (identityResult.value as { identity: Record<string, unknown> }).identity
-          : null,
-        history: historyResult.status === "fulfilled" && historyResult.value
-          ? (historyResult.value as { history: Record<string, unknown> }).history
-          : null,
-      });
-    } catch {
-      toast.error("Failed to load Filecoin data");
-    } finally {
-      setFilecoinLoading(false);
-    }
+  const handleLoadFilecoinData = () => {
+    setLoadFilecoin(true);
   };
 
   const hasOnChainData = profile && Number(profile.reputation.totalScore) > 0;
-  const hasFilecoinData = filecoinData.identity || filecoinData.history;
+  const hasFilecoinData = filecoinIdentity || filecoinHistory;
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
@@ -137,7 +118,7 @@ export default function VerifyPage() {
           {/* Load Filecoin Button */}
           {!hasFilecoinData && (
             <div className="text-center">
-              <Button onClick={loadFilecoinData} disabled={filecoinLoading} variant="outline">
+              <Button onClick={handleLoadFilecoinData} disabled={filecoinLoading || loadFilecoin} variant="outline">
                 {filecoinLoading ? "Loading Filecoin data..." : "Load Filecoin Data for Comparison"}
               </Button>
             </div>
@@ -153,19 +134,19 @@ export default function VerifyPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {filecoinData.identity && (
+                {filecoinIdentity && (
                   <div className="space-y-2 text-sm">
                     <p className="font-medium mb-2">Identity</p>
                     <pre className="overflow-x-auto rounded-none bg-muted p-3 text-xs">
-                      {JSON.stringify(filecoinData.identity, null, 2)}
+                      {JSON.stringify(filecoinIdentity, null, 2)}
                     </pre>
                   </div>
                 )}
-                {filecoinData.history && (
+                {filecoinHistory && (
                   <div className="mt-4 space-y-2 text-sm">
                     <p className="font-medium mb-2">History</p>
                     <pre className="overflow-x-auto rounded-none bg-muted p-3 text-xs max-h-64">
-                      {JSON.stringify(filecoinData.history, null, 2)}
+                      {JSON.stringify(filecoinHistory, null, 2)}
                     </pre>
                   </div>
                 )}
