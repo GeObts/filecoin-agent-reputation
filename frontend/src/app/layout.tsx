@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Roboto, Boldonse, JetBrains_Mono } from "next/font/google";
-import { Providers } from "./providers";
+import { ClientProviders } from "./client-providers";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Toaster } from "@/components/ui/sonner";
@@ -16,6 +16,7 @@ const boldonse = Boldonse({
   variable: "--font-boldonse",
   subsets: ["latin"],
   weight: "400",
+  adjustFontFallback: false,
 });
 
 const jetbrainsMono = JetBrains_Mono({
@@ -38,12 +39,12 @@ export default function RootLayout({
       <body
         className="antialiased min-h-screen flex flex-col"
       >
-        <Providers>
+        <ClientProviders>
           <Navbar />
           <main className="flex-1">{children}</main>
           <Footer />
           <Toaster />
-        </Providers>
+        </ClientProviders>
       </body>
     </html>
   );

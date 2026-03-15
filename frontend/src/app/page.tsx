@@ -53,7 +53,7 @@ export default function DashboardPage() {
       {/* Hero */}
       <section
         ref={heroRef}
-        className="mb-10 py-8 text-center sm:mb-16 sm:py-16"
+        className="mb-10 text-center sm:mb-16 min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center"
       >
         <h1
           className={`mb-4 text-3xl font-heading tracking-tight leading-[1.3] text-foreground sm:text-5xl md:text-6xl lg:text-8xl --font-boldonse uppercase font-extrabold`}

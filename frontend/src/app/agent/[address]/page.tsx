@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useEffect, useRef } from "react";
+import { use, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import { ScoreRing } from "@/components/reputation/score-ring";
 import { ScoreBreakdownChart } from "@/components/reputation/score-breakdown-chart";
 import { ProfileSkeleton } from "@/components/ui/loading-skeleton";
 import { useAgentProfile } from "@/hooks/useAgentProfile";
-import { getHistory } from "@/lib/api";
+import { useFilecoinHistory } from "@/hooks/useFilecoinData";
 import { formatTimestamp, getScoreColor } from "@/lib/utils";
 import type { Action } from "@/lib/types";
 import { useGsapEntranceStagger, useGsapStagger, useGsapScroll } from "@/hooks/useGsap";
@@ -27,9 +27,11 @@ export default function AgentProfilePage({
   const agentAddress = address as `0x${string}`;
   const { profile, isLoading, isError } = useAgentProfile(agentAddress);
 
-  const [actions, setActions] = useState<Action[]>([]);
-  const [actionsLoading, setActionsLoading] = useState(false);
-  const [actionsLoaded, setActionsLoaded] = useState(false);
+  const historyCID = profile?.reputation.historyCID;
+  const historyQuery = useFilecoinHistory(historyCID);
+  const historyData = historyQuery.data?.history as { actions?: Action[] } | undefined;
+  const actions = historyData?.actions ?? [];
+  const actionsLoading = historyQuery.isLoading && !!historyCID;
 
   const headerRef = useRef<HTMLDivElement>(null);
   const cardsRef = useRef<HTMLDivElement>(null);
@@ -38,28 +40,6 @@ export default function AgentProfilePage({
   useGsapEntranceStagger(headerRef);
   useGsapStagger(cardsRef);
   useGsapScroll(historyRef);
-
-  const loadActions = async (historyCID: string) => {
-    if (!historyCID || actionsLoaded) return;
-    setActionsLoading(true);
-    try {
-      const result = await getHistory(historyCID);
-      const history = result.history as { actions?: Action[] };
-      setActions(history.actions || []);
-      setActionsLoaded(true);
-    } catch {
-      setActions([]);
-    } finally {
-      setActionsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (profile?.reputation.historyCID) {
-      loadActions(profile.reputation.historyCID);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile?.reputation.historyCID]);
 
   if (isLoading) {
     return (
@@ -188,14 +168,14 @@ export default function AgentProfilePage({
         <Card className="mt-6">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Action History</CardTitle>
-            {!actionsLoaded && reputation.historyCID && (
+            {historyQuery.isError && reputation.historyCID && (
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => loadActions(reputation.historyCID)}
+                onClick={() => historyQuery.refetch()}
                 disabled={actionsLoading}
               >
-                {actionsLoading ? "Loading..." : "Load History"}
+                Retry
               </Button>
             )}
           </CardHeader>
