@@ -39,6 +39,13 @@ export default function RootLayout({
       <body
         className="antialiased min-h-screen flex flex-col"
       >
+        <noscript>
+          <div style={{padding: '2rem', textAlign: 'center'}}>
+            <h1 style={{fontSize: '2rem', marginBottom: '1rem'}}>FARS - Filecoin Agent Reputation System</h1>
+            <p style={{marginBottom: '1rem'}}>JavaScript is required to use this application.</p>
+            <p>Please enable JavaScript in your browser settings.</p>
+          </div>
+        </noscript>
         <ClientProviders>
           <Navbar />
           <main className="flex-1">{children}</main>
