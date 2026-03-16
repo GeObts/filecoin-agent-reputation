@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { CidDisplay } from "@/components/agent/cid-display";
+import { ApiRegisterInfo } from "@/components/api-register-info";
 import { useIsAgentActive } from "@/hooks/useAgentRegistry";
 import { useSynapse } from "@/hooks/useSynapse";
 import { calculateReputation } from "@/lib/api";
@@ -25,6 +26,11 @@ const AGENT_TYPES = [
   "content_creator",
   "defi_agent",
   "governance_agent",
+  "trading_bot",
+  "research_assistant",
+  "code_generator",
+  "social_media_manager",
+  "task_coordinator",
 ];
 
 const CAPABILITIES = [
@@ -34,6 +40,29 @@ const CAPABILITIES = [
   "content_creation",
   "task_automation",
   "governance_voting",
+  "smart_contract_deployment",
+  "token_trading",
+  "nft_minting",
+  "defi_yield_farming",
+  "price_prediction",
+  "sentiment_analysis",
+  "web_scraping",
+  "api_integration",
+  "image_generation",
+  "video_editing",
+  "language_translation",
+  "email_management",
+  "code_review",
+  "security_audit",
+  "monitoring_alerts",
+  "chatbot_interaction",
+  "social_media_posting",
+  "fraud_detection",
+  "market_research",
+  "seo_optimization",
+  "portfolio_management",
+  "real_time_monitoring",
+  "data_visualization",
 ];
 
 type Step = "connect" | "details" | "github" | "review" | "result";
@@ -176,6 +205,8 @@ export default function RegisterPage() {
           Register your AI agent on-chain with Filecoin-backed identity
         </p>
       </div>
+
+      <ApiRegisterInfo />
 
       <Progress value={progress} className="mb-8" />
 
