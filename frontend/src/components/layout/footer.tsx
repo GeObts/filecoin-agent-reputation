@@ -1,3 +1,5 @@
+import { AGENT_REGISTRY_ADDRESS, REPUTATION_ORACLE_ADDRESS } from "@/lib/contracts";
+
 const BASESCAN_URL = "https://sepolia.basescan.org/address";
 
 export function Footer() {
@@ -11,7 +13,7 @@ export function Footer() {
           </div>
           <div className="flex gap-4 text-xs text-muted-foreground">
             <a
-              href={`${BASESCAN_URL}/${process.env.NEXT_PUBLIC_AGENT_REGISTRY_ADDRESS}`}
+              href={`${BASESCAN_URL}/${AGENT_REGISTRY_ADDRESS}`}
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-foreground transition-colors"
@@ -19,7 +21,7 @@ export function Footer() {
               Registry
             </a>
             <a
-              href={`${BASESCAN_URL}/${process.env.NEXT_PUBLIC_REPUTATION_ORACLE_ADDRESS}`}
+              href={`${BASESCAN_URL}/${REPUTATION_ORACLE_ADDRESS}`}
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-foreground transition-colors"
