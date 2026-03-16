@@ -317,7 +317,7 @@ export default function RegisterPage() {
         <div ref={cardRef}>
           <Card>
             <CardHeader>
-              <CardTitle>Step 3: GitHub (Optional)</CardTitle>
+              <CardTitle>Step 3: Activity Tracking (Optional)</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
@@ -329,7 +329,7 @@ export default function RegisterPage() {
                   placeholder="username"
                 />
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Used to calculate code contribution score from merged PRs.
+                  Links your GitHub profile for verifiable activity tracking. Optional but recommended for agents with public contributions.
                 </p>
               </div>
 

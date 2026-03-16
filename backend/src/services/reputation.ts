@@ -2,7 +2,7 @@ import { Octokit } from 'octokit';
 
 export interface Action {
   timestamp: string;
-  type: 'code_contribution' | 'blockchain_transaction' | 'agent_interaction' | 'uptime';
+  type: 'agent_task' | 'blockchain_transaction' | 'agent_interaction' | 'uptime' | 'api_call' | 'code_contribution';
   platform?: string;
   details: any;
   score: number;
@@ -11,10 +11,12 @@ export interface Action {
 export interface ReputationScore {
   totalScore: number;
   breakdown: {
-    codeContributions: number;
+    agentTasks: number;
     blockchainActivity: number;
     agentInteractions: number;
     uptime: number;
+    apiCalls: number;
+    codeContributions: number;
   };
   actionCount: number;
 }
@@ -32,51 +34,86 @@ export class ReputationService {
   }
 
   /**
-   * Fetch GitHub PRs for a user
+   * Fetch GitHub activity for a user (optional - for verification only)
    */
-  async fetchGitHubPRs(username: string): Promise<Action[]> {
+  async fetchGitHubActivity(username: string): Promise<Action[]> {
     try {
-      const { data: pullRequests } = await this.octokit.rest.search.issuesAndPullRequests({
-        q: `author:${username} type:pr is:merged`,
-        sort: 'created',
-        order: 'desc',
+      const { data: events } = await this.octokit.rest.activity.listPublicEventsForUser({
+        username,
         per_page: 100
       });
 
-      return pullRequests.items.map(pr => ({
-        timestamp: pr.closed_at || pr.created_at,
-        type: 'code_contribution',
-        platform: 'github',
-        details: {
-          repo: pr.repository_url?.split('/').slice(-2).join('/') || 'unknown',
-          pr: pr.number,
-          title: pr.title,
-          merged: true,
-          url: pr.html_url
-        },
-        score: 10 // Base score for merged PR
-      }));
+      return events
+        .filter(e => ['PushEvent', 'PullRequestEvent', 'IssuesEvent'].includes(e.type))
+        .map(event => ({
+          timestamp: event.created_at,
+          type: 'code_contribution',
+          platform: 'github',
+          details: {
+            type: event.type,
+            repo: event.repo?.name || 'unknown',
+            public: event.public
+          },
+          score: 5 // Lower score - just for verification
+        }));
     } catch (error) {
-      console.error('[Reputation] GitHub PR fetch failed:', error);
+      console.error('[Reputation] GitHub activity fetch failed:', error);
       return [];
     }
   }
 
   /**
+   * Generate mock agent activity (placeholder until real tracking implemented)
+   */
+  generateBaselineActivity(agentAddress: string): Action[] {
+    const now = new Date();
+    const actions: Action[] = [];
+
+    // Agent registration counts as initial activity
+    actions.push({
+      timestamp: now.toISOString(),
+      type: 'agent_task',
+      platform: 'FARS',
+      details: {
+        task: 'agent_registration',
+        status: 'completed'
+      },
+      score: 100 // Base score for registration
+    });
+
+    // Baseline uptime (presence on network)
+    actions.push({
+      timestamp: now.toISOString(),
+      type: 'uptime',
+      platform: 'FARS',
+      details: {
+        status: 'active',
+        duration: '1h'
+      },
+      score: 50
+    });
+
+    return actions;
+  }
+
+  /**
    * Calculate reputation score from actions
+   * Focus: Agent activity > blockchain > interactions > code contributions
    */
   calculateReputation(actions: Action[]): ReputationScore {
     const breakdown = {
-      codeContributions: 0,
+      agentTasks: 0,
       blockchainActivity: 0,
       agentInteractions: 0,
-      uptime: 0
+      uptime: 0,
+      apiCalls: 0,
+      codeContributions: 0
     };
 
     actions.forEach(action => {
       switch (action.type) {
-        case 'code_contribution':
-          breakdown.codeContributions += action.score;
+        case 'agent_task':
+          breakdown.agentTasks += action.score;
           break;
         case 'blockchain_transaction':
           breakdown.blockchainActivity += action.score;
@@ -87,17 +124,26 @@ export class ReputationService {
         case 'uptime':
           breakdown.uptime += action.score;
           break;
+        case 'api_call':
+          breakdown.apiCalls += action.score;
+          break;
+        case 'code_contribution':
+          breakdown.codeContributions += action.score;
+          break;
       }
     });
 
+    // Weighted scoring: Tasks (2x) > Blockchain (1.5x) > Interactions (1x) > Uptime (0.5x) > Code (0.3x)
     const totalScore = 
-      breakdown.codeContributions +
-      breakdown.blockchainActivity +
+      (breakdown.agentTasks * 2) +
+      (breakdown.blockchainActivity * 1.5) +
       breakdown.agentInteractions +
-      breakdown.uptime;
+      (breakdown.uptime * 0.5) +
+      (breakdown.apiCalls * 1.2) +
+      (breakdown.codeContributions * 0.3);
 
     return {
-      totalScore,
+      totalScore: Math.round(totalScore),
       breakdown,
       actionCount: actions.length
     };
@@ -145,15 +191,24 @@ export class ReputationService {
   async aggregateActions(agentAddress: string, githubUsername?: string): Promise<Action[]> {
     const actions: Action[] = [];
 
-    // Fetch GitHub PRs if username provided
+    // 1. Generate baseline agent activity (registration + uptime)
+    const baselineActions = this.generateBaselineActivity(agentAddress);
+    actions.push(...baselineActions);
+
+    // 2. Optionally fetch GitHub activity for verification (minimal weight)
     if (githubUsername) {
-      const githubActions = await this.fetchGitHubPRs(githubUsername);
-      actions.push(...githubActions);
+      try {
+        const githubActions = await this.fetchGitHubActivity(githubUsername);
+        actions.push(...githubActions.slice(0, 10)); // Limit to recent 10
+      } catch (error) {
+        console.warn('[Reputation] GitHub fetch skipped:', error);
+      }
     }
 
-    // TODO: Add blockchain transaction fetching
-    // TODO: Add agent interaction history
-    // TODO: Add uptime metrics
+    // TODO: Add blockchain transaction fetching (high priority)
+    // TODO: Add agent-to-agent interaction history
+    // TODO: Add API call tracking
+    // TODO: Add task completion metrics
 
     // Sort by timestamp
     actions.sort((a, b) => 
