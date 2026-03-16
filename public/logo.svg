@@ -1,0 +1,23 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="256" fill="#1A1B1F"/>
+  
+  <!-- Filecoin F shape -->
+  <path d="M180 140 L340 140 L340 180 L220 180 L220 230 L320 230 L320 270 L220 270 L220 372 L180 372 Z" fill="#0090FF"/>
+  
+  <!-- Network nodes representing agents -->
+  <circle cx="380" cy="180" r="18" fill="#00D395" opacity="0.9"/>
+  <circle cx="420" cy="240" r="18" fill="#00D395" opacity="0.9"/>
+  <circle cx="380" cy="300" r="18" fill="#00D395" opacity="0.9"/>
+  
+  <!-- Connecting lines (reputation network) -->
+  <line x1="340" y1="160" x2="380" y2="180" stroke="#00D395" stroke-width="2" opacity="0.5"/>
+  <line x1="340" y1="250" x2="420" y2="240" stroke="#00D395" stroke-width="2" opacity="0.5"/>
+  <line x1="340" y1="290" x2="380" y2="300" stroke="#00D395" stroke-width="2" opacity="0.5"/>
+  
+  <!-- Shield/badge for reputation -->
+  <path d="M140 300 L140 360 C 140 380 150 390 160 400 L160 360 L180 360 L180 410 C 185 412 190 413 195 414 L195 360 L215 360 L215 414 C 220 413 225 412 230 410 L230 360 L250 360 L250 400 C 260 390 270 380 270 360 L270 300 Z" fill="#00D395" opacity="0.2"/>
+  
+  <!-- Text FARS -->
+  <text x="256" y="450" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="#FFFFFF" text-anchor="middle">FARS</text>
+</svg>
