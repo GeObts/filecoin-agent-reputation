@@ -28,20 +28,25 @@ FARS provides a trustless, portable reputation system for AI agents using Fileco
 ## Architecture
 
 ```
-AI Agent → Backend API → Smart Contracts (Base)
+AI Agent → Next.js Frontend (Vercel) → Smart Contracts (Base)
                 ↓
           Filecoin Storage (Synapse SDK)
 ```
 
 **Components:**
+- **Frontend**: Next.js with RainbowKit wallet integration
+- **Serverless API**: Next.js API routes (`/api/*`) deployed to Vercel
 - **Smart Contracts**: AgentRegistry + ReputationOracle on Base Sepolia
-- **Backend API**: Node.js + Express REST API
-- **CLI Tool**: Command-line interface for registration and verification
 - **Storage**: Filecoin via Synapse SDK for state persistence
+- **CLI Tool**: Command-line interface for advanced operations (optional)
 
 ---
 
 ## Quick Start
+
+### Live Demo
+
+🌐 **Production:** https://filecoin-agent-reputation.vercel.app
 
 ### Prerequisites
 
@@ -55,13 +60,13 @@ AI Agent → Backend API → Smart Contracts (Base)
 git clone https://github.com/GeObts/filecoin-agent-reputation.git
 cd filecoin-agent-reputation
 
-# Install backend dependencies
-cd backend
+# Install frontend dependencies (includes API routes)
+cd frontend
 npm install
 
-# Install CLI dependencies
-cd ../cli
-npm install
+# Copy environment file
+cp .env.example .env.local
+# Edit .env.local with your values (optional GITHUB_TOKEN)
 ```
 
 ### Configuration
@@ -107,27 +112,26 @@ FILECOIN_CALIBRATION_RPC=https://api.calibration.node.glif.io/rpc/v1
 
 ### Running the Application
 
-**Production (Vercel):**
-- Live at: https://filecoin-agent-reputation.vercel.app
-- Frontend includes serverless API routes (no separate backend needed)
-
 **Local Development:**
 
 ```bash
-# Frontend (includes API routes)
 cd frontend
 npm run dev
 ```
 
-Frontend runs on `http://localhost:3000` with built-in API at `/api/*`
+Frontend runs on `http://localhost:3000` with serverless API routes at `/api/*`
 
-**Optional Standalone Backend:**
+**Deployment to Vercel:**
 
-```bash
-# Only if you want to run backend separately
-cd backend
-npm start
-```
+1. Push code to GitHub
+2. Import project in Vercel dashboard
+3. Set root directory to `frontend/`
+4. Add environment variables in Vercel dashboard:
+   - `GITHUB_TOKEN` (optional - for GitHub activity verification)
+   - All `NEXT_PUBLIC_*` vars are already in `.env.local`
+5. Deploy
+
+The `/backend` folder is ignored via `.vercelignore` - all API routes are in `frontend/src/app/api/`
 
 ---
 

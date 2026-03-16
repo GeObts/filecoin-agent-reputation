@@ -1,0 +1,18 @@
+# Ignore backend folder (API is in frontend/src/app/api)
+backend/
+
+# Ignore development scripts
+scripts/
+
+# Ignore contracts (already deployed)
+contracts/
+
+# Ignore CLI (not needed for web deployment)
+cli/
+
+# Ignore docs
+docs/
+AUDIT.md
+DAY2_STATUS.md
+HOW_IT_WORKS.md
+CLAUDE.md
