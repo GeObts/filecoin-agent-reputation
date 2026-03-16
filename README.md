@@ -66,10 +66,31 @@ npm install
 
 ### Configuration
 
-Create `backend/.env`:
+⚠️ **SECURITY WARNING**: Never commit `.env` files to git! They contain private keys and sensitive credentials.
+
+Frontend configuration (`.env.local`):
 
 ```bash
-PRIVATE_KEY=your_private_key_here
+# API Configuration (uses frontend serverless routes)
+NEXT_PUBLIC_API_URL=/api
+
+# Contract Addresses (Base Sepolia)
+NEXT_PUBLIC_AGENT_REGISTRY_ADDRESS=0x644337Ca322C90098b5F3657Bde2b661e28d9e0E
+NEXT_PUBLIC_REPUTATION_ORACLE_ADDRESS=0xb7FaEDd691a1d9e02A348a09456F6D3E39355FF1
+
+# Network Configuration
+NEXT_PUBLIC_CHAIN_ID=84532
+NEXT_PUBLIC_CHAIN_NAME=Base Sepolia
+
+# Optional: GitHub token for reputation calculations
+GITHUB_TOKEN=your_github_token_here  # KEEP SECRET - DO NOT COMMIT
+```
+
+Backend configuration (optional - frontend includes serverless API routes):
+
+```bash
+# Only needed if running standalone backend
+PRIVATE_KEY=your_private_key_here  # ⚠️ NEVER COMMIT THIS
 WALLET_ADDRESS=your_wallet_address_here
 GITHUB_TOKEN=your_github_token_here
 
@@ -82,14 +103,29 @@ BASE_SEPOLIA_RPC=https://sepolia.base.org
 FILECOIN_CALIBRATION_RPC=https://api.calibration.node.glif.io/rpc/v1
 ```
 
-### Running the Backend
+### Running the Application
+
+**Production (Vercel):**
+- Live at: https://filecoin-agent-reputation.vercel.app
+- Frontend includes serverless API routes (no separate backend needed)
+
+**Local Development:**
 
 ```bash
+# Frontend (includes API routes)
+cd frontend
+npm run dev
+```
+
+Frontend runs on `http://localhost:3000` with built-in API at `/api/*`
+
+**Optional Standalone Backend:**
+
+```bash
+# Only if you want to run backend separately
 cd backend
 npm start
 ```
-
-API runs on `http://localhost:3000`
 
 ---
 
