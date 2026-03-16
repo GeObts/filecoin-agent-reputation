@@ -1,7 +1,7 @@
 import { Synapse } from '@filoz/synapse-sdk';
+import { calibration } from '@filoz/synapse-core/chains';
 import { createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { filecoinCalibration } from 'viem/chains';
 
 /**
  * Synapse Storage Service for Filecoin interaction
@@ -23,14 +23,14 @@ export class SynapseService {
     try {
       const walletClient = createWalletClient({
         account: this.account,
-        chain: filecoinCalibration,
+        chain: calibration,
         transport: http()
       });
 
       this.synapse = new Synapse({
         network: 'calibration',
         // @ts-ignore - Synapse SDK types might differ slightly
-        walletClient
+        client: walletClient
       });
 
       console.log('[Synapse] Initialized for Calibration testnet');
