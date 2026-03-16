@@ -68,6 +68,8 @@ npm install
 
 ⚠️ **SECURITY WARNING**: Never commit `.env` files to git! They contain private keys and sensitive credentials.
 
+> **Note for this repository**: A `.env` file was accidentally committed in early development and later removed. If you're deploying this code, **use fresh API keys and wallet addresses** - do not reuse any credentials from git history.
+
 Frontend configuration (`.env.local`):
 
 ```bash
