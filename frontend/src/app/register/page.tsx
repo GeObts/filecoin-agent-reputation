@@ -179,18 +179,27 @@ export default function RegisterPage() {
   }, [step]);
 
   // If already registered, show notice
-  if (isAlreadyActive && address) {
+  if (isAlreadyActive) {
     return (
       <div className="mx-auto max-w-lg px-4 py-12 text-center">
-        <Card>
+        <Card className="border-yellow-500/20">
           <CardContent className="p-8">
+            <div className="mb-4 text-4xl">⚠️</div>
             <h2 className="text-xl font-semibold mb-2">Already Registered</h2>
-            <p className="text-muted-foreground mb-4">
-              This address is already registered as an active agent.
+            <p className="text-muted-foreground mb-2">
+              Address <code className="text-xs bg-muted px-2 py-1 rounded">{address}</code> is already registered.
             </p>
-            <Link href={`/agent/${address}`}>
-              <Button>View Profile</Button>
-            </Link>
+            <p className="text-sm text-muted-foreground mb-4">
+              Each wallet can only register once. Use a different address to register a new agent.
+            </p>
+            <div className="flex gap-2 justify-center">
+              <Link href={`/agent/${address}`}>
+                <Button>View Profile</Button>
+              </Link>
+              <Button variant="outline" onClick={() => window.location.reload()}>
+                Try Different Wallet
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
