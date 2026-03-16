@@ -61,7 +61,7 @@ function ConnectYourAgent() {
 }
 
 export default function DashboardPage() {
-  const { data: agentCount, isLoading: countLoading } = useAgentCount();
+  const { data: agentCount, isLoading: countLoading, error: countError } = useAgentCount();
   const count = agentCount ? Number(agentCount) : 0;
   const displayCount = Math.min(count, 5);
 
