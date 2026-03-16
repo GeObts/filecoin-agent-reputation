@@ -44,13 +44,13 @@ export class ReputationService {
       });
 
       return events
-        .filter(e => ['PushEvent', 'PullRequestEvent', 'IssuesEvent'].includes(e.type))
+        .filter(e => e.type && ['PushEvent', 'PullRequestEvent', 'IssuesEvent'].includes(e.type))
         .map(event => ({
-          timestamp: event.created_at,
-          type: 'code_contribution',
+          timestamp: event.created_at || new Date().toISOString(),
+          type: 'code_contribution' as const,
           platform: 'github',
           details: {
-            type: event.type,
+            type: event.type || 'unknown',
             repo: event.repo?.name || 'unknown',
             public: event.public
           },

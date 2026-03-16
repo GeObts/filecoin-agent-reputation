@@ -2,13 +2,15 @@ import { initSynapse, getSynapse } from "./synapse";
 import { initReputation, getReputation } from "./reputation";
 
 /**
- * Initialize read-only Synapse (for retrieval routes).
+ * Initialize Synapse (requires private key for uploads).
  */
 export function ensureSynapse() {
   try {
     getSynapse();
   } catch {
-    initSynapse();
+    // Use a dummy key for serverless - actual uploads happen client-side
+    const dummyKey = process.env.PRIVATE_KEY || '0x0000000000000000000000000000000000000000000000000000000000000001';
+    initSynapse(dummyKey);
   }
 }
 
