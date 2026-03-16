@@ -19,7 +19,12 @@
       "Bash(git ls-files:*)",
       "Bash(npm run dev:*)",
       "Bash(node -e:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(if exist .next rmdir /s /q .next)",
+      "Bash(npx next dev:*)",
+      "Bash(ls \"D:\\\\Harry\\\\BasedNouns\\\\CodeProject\\\\filecoin-agent-reputation\\\\frontend\\\\src\\\\app\\\\api\\\\agent\\\\register\"\" 2>/dev/null; ls \"D:HarryBasedNounsCodeProjectfilecoin-agent-reputationfrontendsrcappapiagent\"\")",
+      "Bash(ls \"D:\\\\Harry\\\\BasedNouns\\\\CodeProject\\\\filecoin-agent-reputation\\\\frontend\\\\src\\\\app\\\\api\\\\identity\\\\create\"\" 2>/dev/null; ls \"D:HarryBasedNounsCodeProjectfilecoin-agent-reputationfrontendsrcappapiidentity\"\")",
+      "mcp__claude_ai_Context7__resolve-library-id"
     ]
   }
 }

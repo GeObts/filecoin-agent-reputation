@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ensureServices } from "@/lib/services/init";
+import { ensureSynapse } from "@/lib/services/init";
 import { getSynapse } from "@/lib/services/synapse";
 import { cidString } from "@/lib/validation";
 
@@ -8,7 +8,7 @@ export async function GET(
   { params }: { params: Promise<{ cid: string }> }
 ) {
   try {
-    ensureServices();
+    ensureSynapse();
     const { cid } = await params;
 
     const parsed = cidString.safeParse(cid);

@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ensureServices } from "@/lib/services/init";
-import { getSynapse } from "@/lib/services/synapse";
+import { ensureReputation } from "@/lib/services/init";
 import { getReputation } from "@/lib/services/reputation";
 import { calculateReputationSchema } from "@/lib/validation";
 
 export async function POST(req: NextRequest) {
   try {
-    ensureServices();
+    ensureReputation();
     const body = await req.json();
 
     const parsed = calculateReputationSchema.safeParse(body);
@@ -30,20 +29,13 @@ export async function POST(req: NextRequest) {
     // Generate proof
     const proof = reputation.generateProof(actions);
 
-    // Upload to Filecoin
-    const synapse = getSynapse();
-    const historyCID = await synapse.uploadHistory(agentAddress, actions);
-    const proofCID = await synapse.uploadProof(agentAddress, proof);
-
+    // Return raw data — client uploads to Filecoin via Synapse
     return NextResponse.json({
       success: true,
       agentAddress,
+      actions,
       reputation: score,
-      filecoin: {
-        historyCID,
-        proofCID,
-      },
-      actionCount: actions.length,
+      proof,
     });
   } catch (error: unknown) {
     console.error("[API] Reputation calculation failed:", error);

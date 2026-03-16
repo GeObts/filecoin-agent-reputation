@@ -26,21 +26,6 @@ export interface ScoreBreakdown {
 
 // Backend API types
 
-export interface CreateIdentityRequest {
-  agentId: string;
-  name: string;
-  type?: string;
-  capabilities?: string[];
-  metadata?: Record<string, unknown>;
-}
-
-export interface CreateIdentityResponse {
-  success: boolean;
-  cid: string;
-  agentId: string;
-  message: string;
-}
-
 export interface FilecoinIdentity {
   success: boolean;
   identity: Record<string, unknown>;
@@ -52,15 +37,30 @@ export interface CalculateReputationRequest {
   githubUsername?: string;
 }
 
+export interface ReputationScore {
+  totalScore: number;
+  breakdown: {
+    codeContributions: number;
+    blockchainActivity: number;
+    agentInteractions: number;
+    uptime: number;
+  };
+  actionCount: number;
+}
+
+export interface ReputationProof {
+  root: string;
+  leaves: string[];
+  timestamp: string;
+  actionCount: number;
+}
+
 export interface CalculateReputationResponse {
   success: boolean;
   agentAddress: string;
-  reputation: number;
-  filecoin: {
-    historyCID: string;
-    proofCID: string;
-  };
-  actionCount: number;
+  actions: Action[];
+  reputation: ReputationScore;
+  proof: ReputationProof;
 }
 
 export interface FilecoinHistory {
@@ -73,27 +73,6 @@ export interface FilecoinProof {
   success: boolean;
   proof: Record<string, unknown>;
   cid: string;
-}
-
-export interface RegisterAgentRequest {
-  agentId: string;
-  name: string;
-  type?: string;
-  capabilities?: string[];
-  metadata?: Record<string, unknown>;
-  githubUsername?: string;
-}
-
-export interface RegisterAgentResponse {
-  success: boolean;
-  agentId: string;
-  filecoin: {
-    identityCID: string;
-    historyCID: string;
-    proofCID: string;
-  };
-  reputation: number;
-  message: string;
 }
 
 // UI types

@@ -12,7 +12,8 @@ import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { CidDisplay } from "@/components/agent/cid-display";
 import { useIsAgentActive } from "@/hooks/useAgentRegistry";
-import { registerAgent } from "@/lib/api";
+import { useSynapse } from "@/hooks/useSynapse";
+import { calculateReputation } from "@/lib/api";
 import { agentRegistryAbi, AGENT_REGISTRY_ADDRESS } from "@/lib/contracts";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -41,6 +42,7 @@ const STEPS: Step[] = ["connect", "details", "github", "review", "result"];
 export default function RegisterPage() {
   const { address, isConnected, chain } = useAccount();
   const { data: isAlreadyActive } = useIsAgentActive(address);
+  const { uploadIdentity, uploadHistory, uploadProof, isReady: synapseReady } = useSynapse();
 
   const [step, setStep] = useState<Step>("connect");
   const [name, setName] = useState("");
@@ -76,32 +78,42 @@ export default function RegisterPage() {
   };
 
   const handleSubmit = async () => {
-    if (!address || !name) return;
+    if (!address || !name || !synapseReady) return;
 
     setSubmitting(true);
     try {
-      // 1. Register via backend API (Filecoin upload)
-      const apiResult = await registerAgent({
+      // 1. Upload identity to Filecoin (client-side, user signs)
+      const identityCID = await uploadIdentity({
         agentId: address,
         name,
         type: agentType,
         capabilities: selectedCapabilities,
+        metadata: {},
+      });
+
+      // 2. Calculate reputation (server-side, needs GITHUB_TOKEN)
+      const apiResult = await calculateReputation({
+        agentAddress: address,
         githubUsername: githubUsername || undefined,
       });
 
+      // 3. Upload history and proof to Filecoin (client-side)
+      const historyCID = await uploadHistory(address, apiResult.actions);
+      const proofCID = await uploadProof(address, apiResult.proof);
+
       setResult({
-        identityCID: apiResult.filecoin.identityCID,
-        historyCID: apiResult.filecoin.historyCID,
-        proofCID: apiResult.filecoin.proofCID,
-        reputation: apiResult.reputation,
+        identityCID,
+        historyCID,
+        proofCID,
+        reputation: apiResult.reputation.totalScore,
       });
 
-      // 2. Register on-chain
+      // 4. Register on-chain
       writeContract({
         address: AGENT_REGISTRY_ADDRESS,
         abi: agentRegistryAbi,
         functionName: "registerAgent",
-        args: [address, apiResult.filecoin.identityCID],
+        args: [address, identityCID],
       });
 
       setStep("result");
@@ -344,7 +356,7 @@ export default function RegisterPage() {
                 </Button>
                 <Button
                   onClick={handleSubmit}
-                  disabled={submitting}
+                  disabled={submitting || !synapseReady}
                   className="btn-primary flex-1"
                 >
                   {submitting ? "Registering..." : "Register Agent"}

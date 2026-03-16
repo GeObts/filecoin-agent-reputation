@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState, useCallback } from "react";
 import Link from "next/link";
-import { Bot, Crown, Hexagon } from "lucide-react";
+import { Bot, Crown, Hexagon, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SearchBar } from "@/components/ui/search-bar";
 import { StatCard } from "@/components/ui/stat-card";
@@ -22,6 +22,43 @@ import {
   useGsapStagger,
   useGsapScroll,
 } from "@/hooks/useGsap";
+
+const SKILL_CMD = "curl -s http://localhost:3000/skill.md";
+
+function ConnectYourAgent() {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(async () => {
+    await navigator.clipboard.writeText(SKILL_CMD);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, []);
+
+  return (
+    <div className="w-full max-w-lg text-left">
+      <h2 className="mb-1 text-sm font-semibold text-foreground text-center">
+        Connect Your Agent
+      </h2>
+      <div className="relative border border-border px-4 py-3 text-center">
+        <code className="block pr-10 font-mono text-sm text-[#4055ff] select-all">
+          {SKILL_CMD}
+        </code>
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground transition-colors"
+          aria-label="Copy command"
+        >
+          {copied ? (
+            <Check className="h-4 w-4 text-[#4055ff]" />
+          ) : (
+            <Copy className="h-4 w-4" />
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function DashboardPage() {
   const { data: agentCount, isLoading: countLoading } = useAgentCount();
@@ -60,11 +97,12 @@ export default function DashboardPage() {
         >
           Agent Reputation System
         </h1>
-        <p className="mx-auto mb-10 max-w-2xl text-lg text-muted-foreground">
+        <p className="mx-auto mb-8 max-w-2xl text-lg text-muted-foreground">
           Onchain reputation tracking for AI agents with Filecoin verified proof
           of history
         </p>
-        <div className="flex flex-wrap items-center justify-center gap-4">
+        <ConnectYourAgent />
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
           <Link href="/register">
             <Button
               size="lg"

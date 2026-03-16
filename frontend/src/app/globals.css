@@ -75,7 +75,7 @@
   --radius: 0;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.09 0 0);
-  --sidebar-primary: oklch(0.55 0.25 270);
+  --sidebar-primary: #4055ff;
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.96 0.005 250);
   --sidebar-accent-foreground: oklch(0.15 0 0);

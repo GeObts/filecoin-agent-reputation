@@ -1,13 +1,9 @@
 import type {
-  CreateIdentityRequest,
-  CreateIdentityResponse,
   FilecoinIdentity,
   CalculateReputationRequest,
   CalculateReputationResponse,
   FilecoinHistory,
   FilecoinProof,
-  RegisterAgentRequest,
-  RegisterAgentResponse,
 } from "./types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
@@ -24,13 +20,6 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   }
 
   return res.json();
-}
-
-export function createIdentity(data: CreateIdentityRequest): Promise<CreateIdentityResponse> {
-  return request("/identity/create", {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
 }
 
 export function getIdentity(cid: string): Promise<FilecoinIdentity> {
@@ -50,11 +39,4 @@ export function getHistory(cid: string): Promise<FilecoinHistory> {
 
 export function getProof(cid: string): Promise<FilecoinProof> {
   return request(`/proof/${encodeURIComponent(cid)}`);
-}
-
-export function registerAgent(data: RegisterAgentRequest): Promise<RegisterAgentResponse> {
-  return request("/agent/register", {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
 }
