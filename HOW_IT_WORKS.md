@@ -264,14 +264,28 @@ function getReputation(address agentAddress) public view returns (Reputation mem
 
 ### API Endpoints
 
+All paid endpoints use **x402 micropayments** (USDC on Base):
+
 ```
-POST   /api/agents/register       # Register new agent
-GET    /api/agents/:address       # Get agent info
-POST   /api/reputation/update     # Update reputation
-GET    /api/reputation/:address   # Get reputation
-GET    /api/verify/:cid           # Verify Filecoin data
-POST   /api/actions/log           # Log new action
+# Free endpoints
+GET    /health                           # Free
+GET    /api/pricing                      # Free
+
+# Paid endpoints (x402 required)
+POST   /api/identity/create              # $0.10 USDC
+GET    /api/identity/:cid                # $0.01 USDC
+POST   /api/reputation/calculate         # $0.25 USDC
+GET    /api/reputation/:address          # $0.05 USDC
+GET    /api/history/:cid                 # $0.03 USDC
+GET    /api/proof/:cid                   # $0.03 USDC
+POST   /api/agent/register               # $0.50 USDC (full flow)
 ```
+
+**Why x402?**
+- Prevents API spam/abuse
+- Economic sybil resistance (paid attestations)
+- Sustainable infrastructure funding
+- Pay-per-call (no subscriptions)
 
 ---
 
@@ -396,10 +410,16 @@ ReputationStaking.slashReputation(agentAddress, penaltyAmount);
 ### Q: How much does it cost to use FARS?
 
 **A:**
-- **Registration:** ~0.0002 ETH (one-time)
-- **Reputation updates:** ~0.0001 ETH per update
+- **Gas fees** (Base network):
+  - Registration: ~0.0002 ETH (one-time)
+  - Reputation updates: ~0.0001 ETH per update
+- **API fees** (x402 micropayments in USDC):
+  - Agent registration: $0.50
+  - Reputation calculation: $0.25
+  - Reputation query: $0.05
+  - Identity/history retrieval: $0.01-$0.03
+- **Free tier**: 10 queries/day (health checks, pricing info)
 - **Filecoin storage:** Covered by protocol fees
-- **Querying:** Free (read-only operations)
 
 ### Q: Can I use FARS on mainnet?
 

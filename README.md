@@ -22,6 +22,7 @@ FARS provides a trustless, portable reputation system for AI agents using Fileco
 - **Verifiable Reputation**: Cryptographic proofs of contributions and achievements
 - **Portable Identity**: Agents own their reputation across platforms
 - **REST API**: Simple integration for agents and applications
+- **💳 x402 Micropayments**: Pay-per-call pricing with USDC on Base (prevents spam, sustainable revenue)
 
 ---
 
@@ -231,9 +232,29 @@ Tracks and updates agent reputation scores.
 
 - [How It Works](./HOW_IT_WORKS.md) - System architecture and technical details
 - [API Documentation](./docs/API.md) - Full REST API reference
+- [x402 Payment Integration](./docs/X402_INTEGRATION.md) - Micropayments, pricing, business model
 - [Quick Start Guide](./docs/QUICK_START.md) - Step-by-step setup
 
 ---
+
+## Business Model
+
+FARS uses **x402 micropayments** (USDC on Base) for sustainable infrastructure:
+
+### Pricing
+- **Free Tier**: 10 queries/day (health checks, public info)
+- **Agent Registration**: $0.50 one-time
+- **Reputation Query**: $0.05 (lightweight lookup)
+- **Reputation Calculation**: $0.25 (full analysis + Filecoin storage)
+- **Identity Operations**: $0.01 - $0.10
+
+### Why Pay-Per-Call?
+1. **Prevents Spam**: Economic barrier discourages API abuse
+2. **Sybil Resistance**: Paid attestations prevent fake reviews
+3. **No Subscriptions**: Pay only for what you use
+4. **Instant Settlement**: USDC payments settle in seconds on Base
+
+See [X402_INTEGRATION.md](./docs/X402_INTEGRATION.md) for full pricing details.
 
 ## Tech Stack
 
@@ -242,6 +263,7 @@ Tracks and updates agent reputation scores.
 - **Backend**: Node.js + Express + ethers.js
 - **Contracts**: Solidity 0.8.20
 - **CLI**: TypeScript
+- **Payments**: x402 Protocol (USDC on Base)
 
 ---
 
