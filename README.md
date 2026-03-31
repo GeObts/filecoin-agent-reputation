@@ -2,44 +2,90 @@
 
 **Decentralized identity and reputation for AI agents, anchored on Filecoin.**
 
-🏆 **Hackathon:** PL_Genesis - Frontiers of Collaboration  
-🎯 **Challenge:** Filecoin #3 - Agent Reputation & Portable Identity  
-📅 **Timeline:** March 10-16, 2026  
-👤 **Team:** Goyabean / 0xdas / beanbot / teeclaw
+**Hackathon:** PL_Genesis - Frontiers of Collaboration
+**Challenge:** Filecoin #3 - Agent Reputation & Portable Identity
+**Team:** Goyabean / 0xdas / beanbot / teeclaw
+**Live Demo:** https://filecoin-agent-reputation.vercel.app
 
 ---
 
 ## Overview
 
-FARS provides a trustless, portable reputation system for AI agents using Filecoin for immutable storage and smart contracts for on-chain verification. Agents can build reputation across platforms and prove their history cryptographically.
+FARS provides a trustless, portable reputation system for AI agents. Agents register on-chain, build verifiable reputation from real activity, and carry that identity across platforms — all backed by immutable Filecoin storage and cryptographic proofs.
 
----
+### Key Features
 
-## Features
-
-- **On-Chain Identity**: ERC-8004 agent registration on Base
-- **Immutable Storage**: Agent state and credentials stored on Filecoin
-- **Verifiable Reputation**: Cryptographic proofs of contributions and achievements
-- **Portable Identity**: Agents own their reputation across platforms
-- **REST API**: Simple integration for agents and applications
-- **💳 x402 Micropayments**: Pay-per-call pricing with USDC on Base (prevents spam, sustainable revenue)
+- **On-Chain Identity** — ERC-8004 agent registration on Base with Filecoin-anchored CIDs
+- **Verifiable Reputation** — SHA-256 Merkle tree proofs of agent activity, stored on Filecoin
+- **Portable Identity** — Agents own their reputation; it travels across platforms via CID
+- **x402 Micropayments** — Pay-per-call API pricing in USDC on Base (prevents spam, funds infrastructure)
+- **On-Chain Proof Verification** — `verifyProofHash()` lets anyone check a Merkle root against the contract
 
 ---
 
 ## Architecture
 
 ```
-AI Agent → Next.js Frontend (Vercel) → Smart Contracts (Base)
-                ↓
-          Filecoin Storage (Synapse SDK)
+AI Agent (any platform)
+        │
+        ▼
+┌──────────────────────────────────────────┐
+│       FARS API (Next.js Serverless)      │
+│  x402 Payment Verification (USDC)        │
+│  Reputation Calculation (SHA-256 Merkle)  │
+│  Identity Management                     │
+└────────────┬──────────────┬──────────────┘
+             │              │
+        ┌────▼────┐    ┌────▼──────┐
+        │Filecoin │    │   Base    │
+        │ Storage │    │ Sepolia  │
+        │         │    │          │
+        │Identity │    │Registry  │
+        │History  │    │Oracle    │
+        │Proofs   │    │          │
+        └─────────┘    └──────────┘
 ```
 
-**Components:**
-- **Frontend**: Next.js with RainbowKit wallet integration
-- **Serverless API**: Next.js API routes (`/api/*`) deployed to Vercel
-- **Smart Contracts**: AgentRegistry + ReputationOracle on Base Sepolia
-- **Storage**: Filecoin via Synapse SDK for state persistence
-- **CLI Tool**: Command-line interface for advanced operations (optional)
+**Stack:** Next.js 16 + React 19 | RainbowKit + wagmi | Solidity 0.8.20 | Synapse SDK | x402 Protocol
+
+---
+
+## Smart Contracts (Base Sepolia)
+
+| Contract | Address | Purpose |
+|----------|---------|---------|
+| **AgentRegistry** | [`0x644337...9e0E`](https://sepolia.basescan.org/address/0x644337Ca322C90098b5F3657Bde2b661e28d9e0E) | Agent identity registration, state CID management |
+| **ReputationOracle** | [`0xb7FaED...5FF1`](https://sepolia.basescan.org/address/0xb7FaEDd691a1d9e02A348a09456F6D3E39355FF1) | Reputation scores, proof CIDs, on-chain proof verification |
+
+### Key Contract Methods
+
+```solidity
+// Register agent with Filecoin identity CID
+AgentRegistry.registerAgent(agentAddress, identityCID)
+
+// Update reputation with Merkle proof hash
+ReputationOracle.updateReputationWithProof(agentAddress, score, historyCID, proofCID, proofHash, actionCount)
+
+// Anyone can verify a proof on-chain
+ReputationOracle.verifyProofHash(agentAddress, claimedProofHash) → bool
+```
+
+---
+
+## API Endpoints
+
+All paid endpoints use [x402 micropayments](./docs/X402_INTEGRATION.md) (USDC on Base).
+
+| Endpoint | Method | Price | Description |
+|----------|--------|-------|-------------|
+| `/api/health` | GET | Free | Health check |
+| `/api/pricing` | GET | Free | Pricing info |
+| `/api/agent/register` | POST | $0.50 | Register agent (full flow) |
+| `/api/identity/create` | POST | $0.10 | Create identity document |
+| `/api/identity/:cid` | GET | $0.01 | Retrieve identity by CID |
+| `/api/reputation/calculate` | POST | $0.25 | Calculate reputation score |
+| `/api/history/:cid` | GET | $0.03 | Retrieve action history |
+| `/api/proof/:cid` | GET | $0.03 | Retrieve proof-of-history |
 
 ---
 
@@ -47,223 +93,91 @@ AI Agent → Next.js Frontend (Vercel) → Smart Contracts (Base)
 
 ### Live Demo
 
-🌐 **Production:** https://filecoin-agent-reputation.vercel.app
+Visit https://filecoin-agent-reputation.vercel.app — connect a Base Sepolia wallet to register and view agents.
 
-### Prerequisites
-
-- Node.js 18+
-- Ethereum wallet with Base Sepolia testnet ETH
-
-### Installation
+### Local Development
 
 ```bash
-# Clone repository
 git clone https://github.com/GeObts/filecoin-agent-reputation.git
-cd filecoin-agent-reputation
+cd filecoin-agent-reputation/frontend
 
-# Install frontend dependencies (includes API routes)
-cd frontend
+# Install dependencies
 npm install
 
-# Copy environment file
+# Configure environment
 cp .env.example .env.local
-# Edit .env.local with your values (optional GITHUB_TOKEN)
-```
+# Edit .env.local with your values
 
-### Configuration
-
-⚠️ **SECURITY WARNING**: Never commit `.env` files to git! They contain private keys and sensitive credentials.
-
-> **Note for this repository**: A `.env` file was accidentally committed in early development and later removed. If you're deploying this code, **use fresh API keys and wallet addresses** - do not reuse any credentials from git history.
-
-Frontend configuration (`.env.local`):
-
-```bash
-# API Configuration (uses frontend serverless routes)
-NEXT_PUBLIC_API_URL=/api
-
-# Contract Addresses (Base Sepolia)
-NEXT_PUBLIC_AGENT_REGISTRY_ADDRESS=0x644337Ca322C90098b5F3657Bde2b661e28d9e0E
-NEXT_PUBLIC_REPUTATION_ORACLE_ADDRESS=0xb7FaEDd691a1d9e02A348a09456F6D3E39355FF1
-
-# Network Configuration
-NEXT_PUBLIC_CHAIN_ID=84532
-NEXT_PUBLIC_CHAIN_NAME=Base Sepolia
-
-# Optional: GitHub token for reputation calculations
-GITHUB_TOKEN=your_github_token_here  # KEEP SECRET - DO NOT COMMIT
-```
-
-Backend configuration (optional - frontend includes serverless API routes):
-
-```bash
-# Only needed if running standalone backend
-PRIVATE_KEY=your_private_key_here  # ⚠️ NEVER COMMIT THIS
-WALLET_ADDRESS=your_wallet_address_here
-GITHUB_TOKEN=your_github_token_here
-
-# Contract addresses (Base Sepolia)
-AGENT_REGISTRY_ADDRESS=0x644337Ca322C90098b5F3657Bde2b661e28d9e0E
-REPUTATION_ORACLE_ADDRESS=0xb7FaEDd691a1d9e02A348a09456F6D3E39355FF1
-
-# RPC endpoints
-BASE_SEPOLIA_RPC=https://sepolia.base.org
-FILECOIN_CALIBRATION_RPC=https://api.calibration.node.glif.io/rpc/v1
-```
-
-### Running the Application
-
-**Local Development:**
-
-```bash
-cd frontend
+# Run dev server
 npm run dev
 ```
 
-Frontend runs on `http://localhost:3000` with serverless API routes at `/api/*`
+### Environment Variables
 
-**Deployment to Vercel:**
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `NEXT_PUBLIC_AGENT_REGISTRY_ADDRESS` | Yes | AgentRegistry contract address |
+| `NEXT_PUBLIC_REPUTATION_ORACLE_ADDRESS` | Yes | ReputationOracle contract address |
+| `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | Yes | From [cloud.walletconnect.com](https://cloud.walletconnect.com) |
+| `GITHUB_TOKEN` | No | For GitHub activity in reputation scores |
+| `PAYMENT_RECIPIENT_ADDRESS` | No | Your wallet for x402 payments (blank = dev mode) |
 
-1. Push code to GitHub
-2. Import project in Vercel dashboard
-3. Set root directory to `frontend/`
-4. Add environment variables in Vercel dashboard:
-   - `GITHUB_TOKEN` (optional - for GitHub activity verification)
-   - All `NEXT_PUBLIC_*` vars are already in `.env.local`
-5. Deploy
+### Deploy to Vercel
 
-The `/backend` folder is ignored via `.vercelignore` - all API routes are in `frontend/src/app/api/`
-
----
-
-## Usage
-
-### Register an Agent
-
-```bash
-cd cli
-npm run register -- \
-  --name "MyAgent" \
-  --description "AI assistant" \
-  --github-id 12345
-```
-
-### Verify Agent Identity
-
-```bash
-npm run verify -- --address 0x...
-```
-
-### Query Reputation Score
-
-```bash
-npm run score -- --address 0x...
-```
+1. Import repo in Vercel dashboard
+2. Set root directory to `frontend/`
+3. Add environment variables in Vercel settings
+4. Deploy
 
 ---
 
-## API Endpoints
+## How It Works
 
-### `POST /api/agents/register`
+1. **Register** — Agent calls `registerAgent()` with a Filecoin identity CID
+2. **Build Reputation** — FARS tracks GitHub activity, blockchain transactions, and agent interactions
+3. **Generate Proof** — Actions are hashed with SHA-256 into a Merkle tree; root is stored on-chain
+4. **Verify** — Anyone can call `verifyProofHash()` to check an agent's proof against the contract
+5. **Port Identity** — The Filecoin CID is permanent and platform-agnostic
 
-Register a new agent on-chain.
-
-**Request:**
-```json
-{
-  "name": "agent-name",
-  "description": "What the agent does",
-  "githubId": 12345,
-  "contributionProofs": [...]
-}
-```
-
-**Response:**
-```json
-{
-  "address": "0x...",
-  "tx": "0x...",
-  "stateCID": "bafy..."
-}
-```
-
-### `GET /api/agents/:address`
-
-Retrieve agent profile and reputation.
-
-**Response:**
-```json
-{
-  "name": "agent-name",
-  "reputationScore": 400,
-  "stateCID": "bafy...",
-  "verified": true
-}
-```
+See [HOW_IT_WORKS.md](./HOW_IT_WORKS.md) for the full technical deep dive.
 
 ---
 
-## Smart Contracts
+## Project Structure
 
-### AgentRegistry
-
-Manages agent identities on Base Sepolia.
-
-**Address:** `0x644337Ca322C90098b5F3657Bde2b661e28d9e0E`
-
-**Methods:**
-- `registerAgent(name, stateCID)` - Register new agent
-- `updateState(agentId, newCID)` - Update agent state
-- `getAgent(address)` - Query agent data
-
-### ReputationOracle
-
-Tracks and updates agent reputation scores.
-
-**Address:** `0xb7FaEDd691a1d9e02A348a09456F6D3E39355FF1`
-
-**Methods:**
-- `updateReputation(agentId, score)` - Update score
-- `getReputation(address)` - Query current score
+```
+frontend/              Main application (Next.js 16)
+  src/app/api/         Serverless API routes (Vercel)
+  src/components/      React components (shadcn + custom)
+  src/lib/             Services, contracts, utilities
+  src/hooks/           React hooks (wagmi, GSAP, Filecoin)
+contracts/             Solidity smart contracts
+  src/                 AgentRegistry.sol, ReputationOracle.sol
+cli/                   CLI tool for agent operations
+backend/               Express backend (deprecated; replaced by serverless)
+docs/                  API reference, x402 integration guide
+```
 
 ---
 
 ## Documentation
 
-- [How It Works](./HOW_IT_WORKS.md) - System architecture and technical details
-- [API Documentation](./docs/API.md) - Full REST API reference
-- [x402 Payment Integration](./docs/X402_INTEGRATION.md) - Micropayments, pricing, business model
-- [Quick Start Guide](./docs/QUICK_START.md) - Step-by-step setup
+- [How It Works](./HOW_IT_WORKS.md) — Architecture, scoring formula, proof system
+- [x402 Integration](./docs/X402_INTEGRATION.md) — Micropayments, pricing, business model
+- [Quick Start](./docs/QUICK_START.md) — Setup and first registration
+- [Submission](./SUBMISSION.md) — Hackathon submission summary
 
 ---
 
-## Business Model
+## Security
 
-FARS uses **x402 micropayments** (USDC on Base) for sustainable infrastructure:
+- Build-time environment validation prevents missing config
+- Security headers (X-Frame-Options, CSP, HSTS) on all responses
+- x402 payment proof format validation
+- SHA-256 Merkle tree proofs (not base64)
+- On-chain proof hash verification
 
-### Pricing
-- **Free Tier**: 10 queries/day (health checks, public info)
-- **Agent Registration**: $0.50 one-time
-- **Reputation Query**: $0.05 (lightweight lookup)
-- **Reputation Calculation**: $0.25 (full analysis + Filecoin storage)
-- **Identity Operations**: $0.01 - $0.10
-
-### Why Pay-Per-Call?
-1. **Prevents Spam**: Economic barrier discourages API abuse
-2. **Sybil Resistance**: Paid attestations prevent fake reviews
-3. **No Subscriptions**: Pay only for what you use
-4. **Instant Settlement**: USDC payments settle in seconds on Base
-
-See [X402_INTEGRATION.md](./docs/X402_INTEGRATION.md) for full pricing details.
-
-## Tech Stack
-
-- **Blockchain**: Base (Ethereum L2)
-- **Storage**: Filecoin (via Synapse SDK)
-- **Backend**: Node.js + Express + ethers.js
-- **Contracts**: Solidity 0.8.20
-- **CLI**: TypeScript
-- **Payments**: x402 Protocol (USDC on Base)
+> **Note:** A `.env` file was accidentally committed early in development and later removed. If deploying, use fresh credentials — do not reuse anything from git history.
 
 ---
 
@@ -273,10 +187,4 @@ MIT
 
 ---
 
-## Contributing
-
-Contributions welcome! Please open an issue or pull request.
-
----
-
-**Built with ❤️ for the future of decentralized AI agents.**
+**Built for PL_Genesis - Frontiers of Collaboration (March 2026)**
