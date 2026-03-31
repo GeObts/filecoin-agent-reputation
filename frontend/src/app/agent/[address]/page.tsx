@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useRef } from "react";
+import dynamic from "next/dynamic";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,14 +10,22 @@ import { AddressDisplay } from "@/components/agent/address-display";
 import { CidDisplay } from "@/components/agent/cid-display";
 import { VerificationBadge } from "@/components/agent/verification-badge";
 import { ActionTimeline } from "@/components/agent/action-timeline";
-import { ScoreRing } from "@/components/reputation/score-ring";
-import { ScoreBreakdownChart } from "@/components/reputation/score-breakdown-chart";
 import { ProfileSkeleton } from "@/components/ui/loading-skeleton";
 import { useAgentProfile } from "@/hooks/useAgentProfile";
 import { useFilecoinHistory } from "@/hooks/useFilecoinData";
 import { formatTimestamp, getScoreColor } from "@/lib/utils";
 import type { Action } from "@/lib/types";
 import { useGsapEntranceStagger, useGsapStagger, useGsapScroll } from "@/hooks/useGsap";
+
+// Code-split heavy chart libraries (GSAP ~45KB, Recharts ~200KB)
+const ScoreRing = dynamic(
+  () => import("@/components/reputation/score-ring").then((m) => m.ScoreRing),
+  { ssr: false }
+);
+const ScoreBreakdownChart = dynamic(
+  () => import("@/components/reputation/score-breakdown-chart").then((m) => m.ScoreBreakdownChart),
+  { ssr: false }
+);
 
 export default function AgentProfilePage({
   params,

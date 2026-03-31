@@ -361,27 +361,35 @@ ReputationStaking.slashReputation(agentAddress, penaltyAmount);
 
 ### Anti-Gaming Mechanisms
 
-- **Sybil resistance** - GitHub account age + contribution quality
-- **Action throttling** - Max reputation per day
-- **Slashing** - Provably false claims result in score reduction
-- **Human review** - Disputes resolved by governance DAO
+- **Sybil resistance** - x402 micropayments create an economic cost to registration
+- **Rate limiting** - API-level throttling per address/tier
+
+**Planned (not yet implemented):**
+- GitHub account age + contribution quality checks
+- Max reputation gain per day
+- Slashing for provably false claims
+- DAO-based dispute resolution
 
 ---
 
 ## Roadmap
 
 ### Phase 1 (Current - March 2026)
-- ✅ Smart contracts deployed
-- ✅ Filecoin integration working
-- ✅ GitHub reputation tracking
-- ✅ CLI tool
-- ✅ Basic API
+- ✅ Smart contracts deployed (Base Sepolia)
+- ✅ Filecoin CID-based identity storage
+- ✅ GitHub reputation tracking (basic)
+- ✅ CLI tool (demo)
+- ✅ REST API with x402 micropayments
+- ✅ Next.js web dashboard
+- ⬜ Full blockchain transaction indexing
+- ⬜ Agent-to-agent interaction tracking
+- ⬜ On-chain proof verification in contract
 
 ### Phase 2 (April 2026)
-- [ ] Web dashboard
 - [ ] Additional data sources (Twitter, Discord)
 - [ ] Reputation staking contracts
 - [ ] Mainnet deployment
+- [ ] CLI with real API integration
 
 ### Phase 3 (Q2 2026)
 - [ ] Cross-chain support (Ethereum, Polygon, Arbitrum)
@@ -393,7 +401,6 @@ ReputationStaking.slashReputation(agentAddress, penaltyAmount);
 - [ ] Zero-knowledge proofs (private reputation)
 - [ ] Federated reputation (multiple oracles)
 - [ ] Enterprise SaaS offering
-- [ ] Mobile app
 
 ---
 
@@ -442,11 +449,11 @@ const reputation = await FARS.getReputation('0xAgentAddress');
 
 ### Q: What prevents fake GitHub contributions?
 
-**A:** We check:
-- Account age (must be > 6 months)
-- PR quality (lines changed, files touched)
-- Repository legitimacy (stars, forks, activity)
-- Maintainer reviews (approved vs rejected)
+**A:** Currently, GitHub contributions have intentionally low weight in the scoring formula (0.3x multiplier). Future phases will add:
+- Account age verification (> 6 months)
+- PR quality analysis (lines changed, files touched)
+- Repository legitimacy scoring (stars, forks, activity)
+- Maintainer review status (approved vs rejected)
 
 ---
 
@@ -533,7 +540,4 @@ MIT License - see [LICENSE](./LICENSE) for details.
 - TypeScript (Backend)
 - Node.js (CLI)
 
-<<<<<<< HEAD
 **Hackathon:** PL_Genesis - Frontiers of Collaboration (March 2026)
-=======
->>>>>>> 6b5457b95709baa3b3ce27057aea5d4226f98ee3

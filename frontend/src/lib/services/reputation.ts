@@ -1,4 +1,5 @@
 import { Octokit } from 'octokit';
+import { createHash } from 'crypto';
 
 export interface Action {
   timestamp: string;
@@ -167,22 +168,29 @@ export class ReputationService {
   }
 
   private hashAction(action: Action): string {
-    // Simplified hash - in production would use proper cryptographic hash
     const data = JSON.stringify({
       timestamp: action.timestamp,
       type: action.type,
       score: action.score
     });
-    
-    return Buffer.from(data).toString('base64');
+    return createHash('sha256').update(data).digest('hex');
   }
 
   private calculateMerkleRoot(hashes: string[]): string {
     if (hashes.length === 0) return '';
     if (hashes.length === 1) return hashes[0];
-    
-    // Simplified - in production would build proper Merkle tree
-    return Buffer.from(hashes.join('')).toString('base64');
+
+    let level = [...hashes];
+    while (level.length > 1) {
+      const next: string[] = [];
+      for (let i = 0; i < level.length; i += 2) {
+        const left = level[i];
+        const right = level[i + 1] ?? left;
+        next.push(createHash('sha256').update(left + right).digest('hex'));
+      }
+      level = next;
+    }
+    return level[0];
   }
 
   /**

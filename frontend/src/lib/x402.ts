@@ -28,7 +28,7 @@ export const PAYMENT_CONFIG = {
   token: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC on Base
   chain: "base",
   chainId: 8453,
-  recipient: process.env.PAYMENT_RECIPIENT_ADDRESS || "0x0eD39Ba9Ab663A20D65cc6e3927dDe40e37309d4",
+  recipient: process.env.PAYMENT_RECIPIENT_ADDRESS ?? "",
 };
 
 /**
@@ -87,8 +87,14 @@ export async function verifyPayment(
     };
   }
 
-  // TODO: Verify cryptographic signature in production
-  // For now, basic header validation is sufficient for hackathon demo
+  // Verify that the payment proof is a valid hex string (basic integrity check).
+  // Full on-chain receipt verification should be added for production use.
+  if (!/^0x[0-9a-fA-F]+$/.test(paymentProof)) {
+    return {
+      valid: false,
+      error: "Invalid payment proof format. Expected hex-encoded transaction hash.",
+    };
+  }
 
   return { valid: true };
 }
