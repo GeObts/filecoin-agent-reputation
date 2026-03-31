@@ -8,7 +8,7 @@ export async function GET() {
     const reputation = getReputation();
     
     // Generate baseline activity for test
-    const testAddress = "0x0eD39Ba9Ab663A20D65cc6e3927dDe40e37309d4";
+    const testAddress = "0x0000000000000000000000000000000000000001";
     const actions = reputation.generateBaselineActivity(testAddress);
     const score = reputation.calculateReputation(actions);
     
@@ -21,10 +21,9 @@ export async function GET() {
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
-    return NextResponse.json({ 
-      success: false, 
-      error: message,
-      stack: error instanceof Error ? error.stack : undefined 
+    return NextResponse.json({
+      success: false,
+      error: message
     }, { status: 500 });
   }
 }

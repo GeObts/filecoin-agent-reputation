@@ -31,6 +31,11 @@
     "wagmi": "^2.19.5",
     "zod": "^4.3.6"
   },
+  "overrides": {
+    "valtio": {
+      "use-sync-external-store": "^1.4.0"
+    }
+  },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",

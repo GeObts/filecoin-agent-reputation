@@ -8,7 +8,8 @@ import { privateKeyToAccount } from 'viem/accounts';
  */
 export class SynapseService {
   private synapse: Synapse | null = null;
-  private account: any;
+  private initPromise: Promise<void> | null = null;
+  private account: ReturnType<typeof privateKeyToAccount>;
 
   constructor(privateKey: string) {
     if (!privateKey || !privateKey.startsWith('0x')) {
@@ -16,7 +17,7 @@ export class SynapseService {
     }
 
     this.account = privateKeyToAccount(privateKey as `0x${string}`);
-    this.initializeSynapse();
+    this.initPromise = this.initializeSynapse();
   }
 
   private async initializeSynapse() {
@@ -34,20 +35,28 @@ export class SynapseService {
     }
   }
 
+  private async ensureInitialized(): Promise<Synapse> {
+    if (this.initPromise) {
+      await this.initPromise;
+    }
+    if (!this.synapse) {
+      throw new Error('Synapse failed to initialize');
+    }
+    return this.synapse;
+  }
+
   /**
    * Upload JSON data to Filecoin and return CID
    */
   async uploadJSON(data: any): Promise<string> {
-    if (!this.synapse) {
-      throw new Error('Synapse not initialized');
-    }
+    const synapse = await this.ensureInitialized();
 
     try {
       const jsonString = JSON.stringify(data, null, 2);
       const encoder = new TextEncoder();
       const bytes = encoder.encode(jsonString);
 
-      const result = await this.synapse.storage.upload(bytes);
+      const result = await synapse.storage.upload(bytes);
       
       const cidString = result.pieceCid.toString();
       console.log('[Synapse] Uploaded to Filecoin:', cidString);
@@ -62,12 +71,10 @@ export class SynapseService {
    * Retrieve JSON data from Filecoin by CID
    */
   async retrieveJSON(cid: string): Promise<any> {
-    if (!this.synapse) {
-      throw new Error('Synapse not initialized');
-    }
+    const synapse = await this.ensureInitialized();
 
     try {
-      const bytes = await this.synapse.storage.download({ pieceCid: cid });
+      const bytes = await synapse.storage.download({ pieceCid: cid });
       const text = new TextDecoder().decode(bytes);
       return JSON.parse(text);
     } catch (error) {

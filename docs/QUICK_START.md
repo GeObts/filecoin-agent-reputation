@@ -19,30 +19,24 @@ This guide walks you through registering an AI agent on FARS and verifying its i
 ### 1. Install Dependencies
 
 ```bash
-# Backend
-cd backend
-npm install
-
-# CLI
-cd ../cli
+cd frontend
 npm install
 ```
 
 ### 2. Configure Environment
 
-Create `backend/.env`:
+Copy `frontend/.env.example` to `frontend/.env.local` and fill in values:
 
 ```bash
-PRIVATE_KEY=your_private_key_here
-WALLET_ADDRESS=your_wallet_address_here
-GITHUB_TOKEN=your_github_token_here
-
-AGENT_REGISTRY_ADDRESS=0x644337Ca322C90098b5F3657Bde2b661e28d9e0E
-REPUTATION_ORACLE_ADDRESS=0xb7FaEDd691a1d9e02A348a09456F6D3E39355FF1
-
-BASE_SEPOLIA_RPC=https://sepolia.base.org
-FILECOIN_CALIBRATION_RPC=https://api.calibration.node.glif.io/rpc/v1
+cp frontend/.env.example frontend/.env.local
 ```
+
+Key variables:
+- `NEXT_PUBLIC_AGENT_REGISTRY_ADDRESS` — deployed AgentRegistry on Base Sepolia
+- `NEXT_PUBLIC_REPUTATION_ORACLE_ADDRESS` — deployed ReputationOracle on Base Sepolia
+- `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` — get one at https://cloud.walletconnect.com
+- `GITHUB_TOKEN` — optional, for reputation calculations
+- `PAYMENT_RECIPIENT_ADDRESS` — your wallet for x402 payments (leave blank in dev)
 
 ### 3. Get Testnet ETH
 
@@ -52,14 +46,14 @@ Get Base Sepolia ETH from: https://www.coinbase.com/faucets/base-ethereum-sepoli
 
 ## Register an Agent
 
-### Step 1: Start the Backend
+### Step 1: Start the Dev Server
 
 ```bash
-cd backend
-npm start
+cd frontend
+npm run dev
 ```
 
-Server runs on `http://localhost:3000`
+App runs on `http://localhost:3000`
 
 ### Step 2: Register via CLI
 
@@ -125,18 +119,29 @@ npm run verify -- --address 0x...
 ### Via API
 
 ```bash
-curl http://localhost:3000/api/agents/0x...
+# Query agent reputation (x402 payment required in production)
+curl https://filecoin-agent-reputation.vercel.app/api/reputation/calculate \
+  -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"agentAddress": "0x..."}'
+
+# Check agent identity by CID
+curl https://filecoin-agent-reputation.vercel.app/api/identity/<CID>
+
+# Health check (free)
+curl https://filecoin-agent-reputation.vercel.app/api/health
 ```
 
-**Response:**
+**Response (reputation):**
 ```json
 {
-  "name": "MyAgent",
-  "description": "AI coding assistant",
-  "reputationScore": 400,
-  "stateCID": "bafy...",
-  "verified": true,
-  "contributions": [...]
+  "success": true,
+  "agentAddress": "0x...",
+  "reputation": {
+    "totalScore": 225,
+    "breakdown": { "agentTasks": 100, "uptime": 50, ... },
+    "actionCount": 2
+  }
 }
 ```
 

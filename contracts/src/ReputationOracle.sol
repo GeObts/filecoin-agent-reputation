@@ -11,6 +11,7 @@ contract ReputationOracle {
         uint256 totalScore;
         string historyCID;        // Filecoin CID containing action history
         string proofOfHistoryCID; // Filecoin CID containing proof data
+        bytes32 proofHash;        // SHA-256 Merkle root of action history
         uint256 lastCalculated;
         uint256 actionCount;
     }
@@ -75,6 +76,38 @@ contract ReputationOracle {
         string memory proofCID,
         uint256 actionCount
     ) external onlyAuthorized {
+        _updateReputation(agentAddress, totalScore, historyCID, proofCID, bytes32(0), actionCount);
+    }
+
+    /**
+     * @notice Update an agent's reputation with Filecoin proof and on-chain proof hash
+     * @param agentAddress The agent whose reputation to update
+     * @param totalScore The calculated reputation score
+     * @param historyCID Filecoin CID containing the action history
+     * @param proofCID Filecoin CID containing proof-of-history data
+     * @param proofHash SHA-256 Merkle root of the action history (for on-chain verification)
+     * @param actionCount Number of actions in the history
+     */
+    function updateReputationWithProof(
+        address agentAddress,
+        uint256 totalScore,
+        string memory historyCID,
+        string memory proofCID,
+        bytes32 proofHash,
+        uint256 actionCount
+    ) external onlyAuthorized {
+        require(proofHash != bytes32(0), "Proof hash required");
+        _updateReputation(agentAddress, totalScore, historyCID, proofCID, proofHash, actionCount);
+    }
+
+    function _updateReputation(
+        address agentAddress,
+        uint256 totalScore,
+        string memory historyCID,
+        string memory proofCID,
+        bytes32 proofHash,
+        uint256 actionCount
+    ) internal {
         require(agentAddress != address(0), "Invalid agent address");
         require(bytes(historyCID).length > 0, "History CID required");
         require(bytes(proofCID).length > 0, "Proof CID required");
@@ -83,6 +116,7 @@ contract ReputationOracle {
             totalScore: totalScore,
             historyCID: historyCID,
             proofOfHistoryCID: proofCID,
+            proofHash: proofHash,
             lastCalculated: block.timestamp,
             actionCount: actionCount
         });
@@ -166,5 +200,25 @@ contract ReputationOracle {
      */
     function hasProof(address agentAddress) external view returns (bool) {
         return bytes(reputations[agentAddress].proofOfHistoryCID).length > 0;
+    }
+
+    /**
+     * @notice Verify a proof hash matches the stored on-chain commitment
+     * @param agentAddress Agent to verify
+     * @param claimedProofHash The Merkle root hash to check
+     * @return valid True if the hash matches the stored proof
+     */
+    function verifyProofHash(address agentAddress, bytes32 claimedProofHash) external view returns (bool) {
+        return reputations[agentAddress].proofHash != bytes32(0) &&
+               reputations[agentAddress].proofHash == claimedProofHash;
+    }
+
+    /**
+     * @notice Get the stored proof hash for an agent
+     * @param agentAddress Agent to query
+     * @return hash The stored Merkle root hash (bytes32(0) if none)
+     */
+    function getProofHash(address agentAddress) external view returns (bytes32) {
+        return reputations[agentAddress].proofHash;
     }
 }

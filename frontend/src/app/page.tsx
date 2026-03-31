@@ -23,7 +23,8 @@ import {
   useGsapScroll,
 } from "@/hooks/useGsap";
 
-const SKILL_CMD = "curl -s https://filecoin-agent-reputation.vercel.app/skill.md";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://filecoin-agent-reputation.vercel.app";
+const SKILL_CMD = `curl -s ${SITE_URL}/skill.md`;
 
 function ConnectYourAgent() {
   const [copied, setCopied] = useState(false);

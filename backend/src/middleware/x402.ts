@@ -69,8 +69,10 @@ export function requirePayment(priceUSDC: string) {
     return createX402Middleware(config);
   } catch (error) {
     console.error('[x402] Failed to create payment middleware:', error);
-    // Fallback to passthrough on error
-    return (req: Request, res: Response, next: NextFunction) => next();
+    // Reject requests when payment middleware fails rather than silently allowing free access
+    return (req: Request, res: Response, next: NextFunction) => {
+      res.status(503).json({ error: 'Payment service unavailable. Try again later.' });
+    };
   }
 }
 
@@ -134,9 +136,31 @@ export const PRICING_TIERS = {
 };
 
 /**
- * Usage tracking (simple in-memory for demo - use Redis in production)
+ * Usage tracking with bounded LRU eviction.
+ * In-memory by design for serverless (each cold start resets).
+ * For persistent rate limiting, connect to Redis/Upstash via REDIS_URL env var.
  */
+const MAX_TRACKED_ADDRESSES = 10_000;
 const usageTracker = new Map<string, { count: number; resetAt: number }>();
+
+function evictStaleEntries() {
+  if (usageTracker.size <= MAX_TRACKED_ADDRESSES) return;
+  const now = Date.now();
+  for (const [key, val] of usageTracker) {
+    if (now > val.resetAt) usageTracker.delete(key);
+    if (usageTracker.size <= MAX_TRACKED_ADDRESSES * 0.8) break;
+  }
+  // If still over limit, drop oldest entries (Map iterates in insertion order)
+  if (usageTracker.size > MAX_TRACKED_ADDRESSES) {
+    const excess = usageTracker.size - MAX_TRACKED_ADDRESSES;
+    let deleted = 0;
+    for (const key of usageTracker.keys()) {
+      if (deleted >= excess) break;
+      usageTracker.delete(key);
+      deleted++;
+    }
+  }
+}
 
 export function trackUsage(address: string, tier: PricingTier): boolean {
   const tierConfig = PRICING_TIERS[tier];
@@ -144,11 +168,12 @@ export function trackUsage(address: string, tier: PricingTier): boolean {
 
   const now = Date.now();
   const dayInMs = 24 * 60 * 60 * 1000;
-  
+
   let usage = usageTracker.get(address);
-  
+
   // Reset if past 24h
   if (!usage || now > usage.resetAt) {
+    evictStaleEntries();
     usage = { count: 0, resetAt: now + dayInMs };
     usageTracker.set(address, usage);
   }

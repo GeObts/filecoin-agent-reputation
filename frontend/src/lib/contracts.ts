@@ -1,5 +1,7 @@
-export const AGENT_REGISTRY_ADDRESS = process.env.NEXT_PUBLIC_AGENT_REGISTRY_ADDRESS as `0x${string}`;
-export const REPUTATION_ORACLE_ADDRESS = process.env.NEXT_PUBLIC_REPUTATION_ORACLE_ADDRESS as `0x${string}`;
+import { publicEnv } from "./env";
+
+export const AGENT_REGISTRY_ADDRESS = publicEnv.AGENT_REGISTRY_ADDRESS;
+export const REPUTATION_ORACLE_ADDRESS = publicEnv.REPUTATION_ORACLE_ADDRESS;
 
 export const agentRegistryAbi = [
   {
