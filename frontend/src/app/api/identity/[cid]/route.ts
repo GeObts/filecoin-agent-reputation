@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { ensureSynapse } from "@/lib/services/init";
 import { getSynapse } from "@/lib/services/synapse";
 import { cidString } from "@/lib/validation";
+import { withPayment, X402_PRICING } from "@/lib/x402";
 
-export async function GET(
+async function handler(
   req: NextRequest,
   { params }: { params: Promise<{ cid: string }> }
 ) {
@@ -24,4 +25,11 @@ export async function GET(
     console.error("[API] Identity retrieval failed:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
+}
+
+export async function GET(
+  req: NextRequest,
+  context: { params: Promise<{ cid: string }> }
+) {
+  return withPayment(X402_PRICING.IDENTITY_RETRIEVE, async (r) => handler(r, context))(req);
 }

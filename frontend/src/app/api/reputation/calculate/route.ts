@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { ensureReputation } from "@/lib/services/init";
 import { getReputation } from "@/lib/services/reputation";
 import { calculateReputationSchema } from "@/lib/validation";
+import { withPayment, X402_PRICING } from "@/lib/x402";
 
-export async function POST(req: NextRequest) {
+async function handler(req: NextRequest) {
   try {
     ensureReputation();
     const body = await req.json();
@@ -42,3 +43,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
+
+export const POST = withPayment(X402_PRICING.REPUTATION_CALCULATE, handler);

@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ensureSynapse } from "@/lib/services/init";
 import { getSynapse } from "@/lib/services/synapse";
+import { withPayment, X402_PRICING } from "@/lib/x402";
 
-export async function POST(req: NextRequest) {
+async function handler(req: NextRequest) {
   try {
     ensureSynapse();
     const body = await req.json();
@@ -36,3 +37,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
+
+export const POST = withPayment(X402_PRICING.IDENTITY_CREATE, handler);
