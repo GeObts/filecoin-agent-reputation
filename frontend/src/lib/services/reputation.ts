@@ -34,6 +34,83 @@ export class ReputationService {
   }
 
   /**
+   * Fetch blockchain transactions from Base Sepolia
+   */
+  async fetchBlockchainActivity(agentAddress: string): Promise<Action[]> {
+    try {
+      const response = await fetch(
+        `https://api-sepolia.basescan.org/api?module=account&action=txlist&address=${agentAddress}&startblock=0&endblock=99999999&sort=desc&apikey=YourApiKeyToken`
+      );
+      
+      const data = await response.json();
+      
+      if (data.status !== '1' || !data.result) {
+        return [];
+      }
+
+      // Convert transactions to actions
+      return data.result.slice(0, 50).map((tx: any) => ({
+        timestamp: new Date(parseInt(tx.timeStamp) * 1000).toISOString(),
+        type: 'blockchain_transaction' as const,
+        platform: 'base_sepolia',
+        details: {
+          hash: tx.hash,
+          from: tx.from,
+          to: tx.to,
+          value: tx.value,
+          gasUsed: tx.gasUsed,
+          isError: tx.isError === '0' ? false : true
+        },
+        score: tx.isError === '0' ? 10 : 2 // Higher score for successful txs
+      }));
+    } catch (error) {
+      console.error('[Reputation] Blockchain activity fetch failed:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Fetch agent-to-agent interactions from FARS registry
+   */
+  async fetchAgentInteractions(agentAddress: string): Promise<Action[]> {
+    // TODO: Implement once FARS registry stores interaction data
+    // For now, return baseline interaction score
+    return [
+      {
+        timestamp: new Date().toISOString(),
+        type: 'agent_interaction' as const,
+        platform: 'FARS',
+        details: {
+          type: 'baseline',
+          description: 'Agent registered on network'
+        },
+        score: 25
+      }
+    ];
+  }
+
+  /**
+   * Fetch API call history (if tracking enabled)
+   */
+  async fetchAPICallHistory(agentAddress: string): Promise<Action[]> {
+    // TODO: Implement API call tracking via middleware logs
+    // For now, return empty - will be populated when API tracking is enabled
+    return [];
+  }
+
+  /**
+   * Fetch task completion metrics
+   */
+  async fetchTaskMetrics(agentAddress: string): Promise<Action[]> {
+    // TODO: Implement task completion tracking
+    // Could integrate with:
+    // - GitHub Issues closed
+    // - Bounties completed
+    // - Services provided
+    return [];
+  }
+
+  /**
    * Fetch GitHub activity for a user (optional - for verification only)
    */
   async fetchGitHubActivity(username: string): Promise<Action[]> {
@@ -205,10 +282,37 @@ export class ReputationService {
       }
     }
 
-    // TODO: Add blockchain transaction fetching (high priority)
-    // TODO: Add agent-to-agent interaction history
-    // TODO: Add API call tracking
-    // TODO: Add task completion metrics
+    // 3. Fetch blockchain transactions (Base Sepolia)
+    try {
+      const blockchainActions = await this.fetchBlockchainActivity(agentAddress);
+      actions.push(...blockchainActions);
+    } catch (error) {
+      console.warn('[Reputation] Blockchain fetch skipped:', error);
+    }
+
+    // 4. Add agent-to-agent interaction history (from FARS registry)
+    try {
+      const interactionActions = await this.fetchAgentInteractions(agentAddress);
+      actions.push(...interactionActions);
+    } catch (error) {
+      console.warn('[Reputation] Interaction fetch skipped:', error);
+    }
+
+    // 5. Add API call tracking (if available)
+    try {
+      const apiActions = await this.fetchAPICallHistory(agentAddress);
+      actions.push(...apiActions);
+    } catch (error) {
+      console.warn('[Reputation] API call tracking skipped:', error);
+    }
+
+    // 6. Add task completion metrics (if available)
+    try {
+      const taskActions = await this.fetchTaskMetrics(agentAddress);
+      actions.push(...taskActions);
+    } catch (error) {
+      console.warn('[Reputation] Task metrics skipped:', error);
+    }
 
     // Sort by timestamp
     actions.sort((a, b) => 

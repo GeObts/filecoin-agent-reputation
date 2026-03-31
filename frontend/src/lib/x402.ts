@@ -87,10 +87,98 @@ export async function verifyPayment(
     };
   }
 
-  // TODO: Verify cryptographic signature in production
-  // For now, basic header validation is sufficient for hackathon demo
+  // Verify transaction on-chain (production mode)
+  if (process.env.VERIFY_ONCHAIN_PAYMENTS === "true") {
+    try {
+      const isValid = await verifyPaymentOnChain(paymentProof, {
+        amount: paidAmount.toString(),
+        token: paymentToken,
+        recipient: PAYMENT_CONFIG.recipient,
+      });
+
+      if (!isValid) {
+        return {
+          valid: false,
+          error: "Payment transaction not found or invalid on-chain",
+        };
+      }
+    } catch (error) {
+      console.error("[x402] On-chain verification failed:", error);
+      return {
+        valid: false,
+        error: "On-chain payment verification failed",
+      };
+    }
+  }
 
   return { valid: true };
+}
+
+/**
+ * Verify payment transaction on Base blockchain
+ * Checks that the tx exists, matches the amount, token, and recipient
+ */
+async function verifyPaymentOnChain(
+  txHash: string,
+  expected: { amount: string; token: string; recipient: string }
+): Promise<boolean> {
+  try {
+    // Query Base Sepolia block explorer API
+    const response = await fetch(
+      `https://api-sepolia.basescan.org/api?module=proxy&action=eth_getTransactionReceipt&txhash=${txHash}&apikey=YourApiKeyToken`
+    );
+
+    const data = await response.json();
+
+    if (!data.result || data.result.status !== "0x1") {
+      // Transaction doesn't exist or failed
+      return false;
+    }
+
+    const receipt = data.result;
+
+    // Verify recipient (to address)
+    if (receipt.to?.toLowerCase() !== expected.token.toLowerCase()) {
+      // Transaction wasn't to the USDC contract
+      return false;
+    }
+
+    // Parse USDC Transfer event logs
+    // Transfer event signature: 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef
+    const transferEvents = receipt.logs.filter(
+      (log: any) =>
+        log.topics[0] ===
+        "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
+    );
+
+    if (transferEvents.length === 0) {
+      return false;
+    }
+
+    // Decode transfer event (topics[1] = from, topics[2] = to, data = amount)
+    const transferEvent = transferEvents[0];
+    const toAddress = "0x" + transferEvent.topics[2].slice(26); // Remove padding
+    const amountHex = transferEvent.data;
+    const amountWei = BigInt(amountHex);
+
+    // USDC has 6 decimals
+    const amountUSDC = Number(amountWei) / 1e6;
+
+    // Verify recipient matches
+    if (toAddress.toLowerCase() !== expected.recipient.toLowerCase()) {
+      return false;
+    }
+
+    // Verify amount is sufficient
+    if (amountUSDC < parseFloat(expected.amount)) {
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("[x402] On-chain verification error:", error);
+    return false;
+  }
 }
 
 /**
