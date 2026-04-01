@@ -137,7 +137,20 @@ export default function RegisterPage() {
         reputation: apiResult.reputation.totalScore,
       });
 
-      // 4. Register on-chain
+      // 4. Persist to Redis via API (so agent shows up immediately)
+      fetch("/api/agent/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          agentId: address,
+          name,
+          type: agentType,
+          capabilities: selectedCapabilities,
+          githubUsername: githubUsername || undefined,
+        }),
+      }).catch(() => { /* best-effort — on-chain is primary */ });
+
+      // 5. Register on-chain
       writeContract({
         address: AGENT_REGISTRY_ADDRESS,
         abi: agentRegistryAbi,

@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useRef } from "react";
+import { use, useRef, useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +36,26 @@ export default function AgentProfilePage({
   const agentAddress = address as `0x${string}`;
   const { profile, isLoading, isError } = useAgentProfile(agentAddress);
 
+  // Fallback: check Redis store when on-chain data is empty
+  const [storedAgent, setStoredAgent] = useState<{
+    name?: string; type?: string; capabilities?: string[];
+    filecoin?: { identityCID: string; historyCID: string; proofCID: string };
+    reputation?: { totalScore: number; breakdown: Record<string, number>; actionCount: number };
+    registeredAt?: string;
+  } | null>(null);
+  const [storedLoading, setStoredLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isLoading && !profile) {
+      setStoredLoading(true);
+      fetch(`/api/agent/${address}`)
+        .then(r => r.ok ? r.json() : null)
+        .then(data => { if (data?.stored) setStoredAgent(data); })
+        .catch(() => {})
+        .finally(() => setStoredLoading(false));
+    }
+  }, [isLoading, profile, address]);
+
   const historyCID = profile?.reputation.historyCID;
   const historyQuery = useFilecoinHistory(historyCID);
   const historyData = historyQuery.data?.history as { actions?: Action[] } | undefined;
@@ -50,10 +70,98 @@ export default function AgentProfilePage({
   useGsapStagger(cardsRef);
   useGsapScroll(historyRef);
 
-  if (isLoading) {
+  if (isLoading || storedLoading) {
     return (
       <div className="mx-auto max-w-4xl px-4 py-12">
         <ProfileSkeleton />
+      </div>
+    );
+  }
+
+  // Show stored agent data when not on-chain yet
+  if ((isError || !profile) && storedAgent) {
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-12">
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-2">
+            <h1 className="text-2xl font-heading tracking-tight text-foreground sm:text-3xl">
+              {storedAgent.name || "Agent Profile"}
+            </h1>
+            <Badge className="bg-blue-100 text-blue-700">Pending On-Chain</Badge>
+          </div>
+          <AddressDisplay address={agentAddress} truncate={false} />
+          <p className="mt-2 text-sm text-muted-foreground">
+            {storedAgent.type?.replace(/_/g, " ")}
+            {storedAgent.capabilities && storedAgent.capabilities.length > 0 && (
+              <> &middot; {storedAgent.capabilities.length} capabilities</>
+            )}
+          </p>
+        </div>
+
+        <div className="grid gap-4 md:gap-6 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Reputation</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Score</span>
+                <span className="font-bold text-lg">{storedAgent.reputation?.totalScore ?? 0}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Actions</span>
+                <span>{storedAgent.reputation?.actionCount ?? 0}</span>
+              </div>
+              {storedAgent.reputation?.breakdown && Object.entries(storedAgent.reputation.breakdown).map(([key, val]) =>
+                val > 0 ? (
+                  <div key={key} className="flex justify-between">
+                    <span className="text-muted-foreground">{key.replace(/([A-Z])/g, " $1").replace(/^./, s => s.toUpperCase())}</span>
+                    <span>{val}</span>
+                  </div>
+                ) : null
+              )}
+              {storedAgent.registeredAt && (
+                <>
+                  <Separator />
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Registered</span>
+                    <span>{new Date(storedAgent.registeredAt).toLocaleString()}</span>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          {storedAgent.filecoin && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Filecoin Data</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <p className="text-sm font-medium mb-1">Identity CID</p>
+                  <CidDisplay cid={storedAgent.filecoin.identityCID} />
+                </div>
+                <div>
+                  <p className="text-sm font-medium mb-1">History CID</p>
+                  <CidDisplay cid={storedAgent.filecoin.historyCID} />
+                </div>
+                <div>
+                  <p className="text-sm font-medium mb-1">Proof CID</p>
+                  <CidDisplay cid={storedAgent.filecoin.proofCID} />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        <Card className="mt-6">
+          <CardContent className="p-6">
+            <p className="text-sm text-muted-foreground">
+              This agent is registered in the FARS system. On-chain registration may still be confirming on Base Sepolia.
+            </p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
