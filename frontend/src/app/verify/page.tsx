@@ -30,6 +30,17 @@ interface ApiReputation {
   };
 }
 
+interface StoredAgentData {
+  stored: boolean;
+  name?: string;
+  type?: string;
+  capabilities?: string[];
+  filecoin?: { identityCID: string; historyCID: string; proofCID: string };
+  reputation?: { totalScore: number; breakdown: Record<string, number>; actionCount: number };
+  proof?: { root: string; leaves: string[]; actionCount: number };
+  registeredAt?: string;
+}
+
 export default function VerifyPage() {
   const [address, setAddress] = useState("");
   const [searchAddress, setSearchAddress] = useState<`0x${string}` | undefined>();
@@ -40,6 +51,9 @@ export default function VerifyPage() {
   // API-based reputation lookup (fallback when not on-chain)
   const [apiData, setApiData] = useState<ApiReputation | null>(null);
   const [apiLoading, setApiLoading] = useState(false);
+
+  // Stored agent data from KV
+  const [storedData, setStoredData] = useState<StoredAgentData | null>(null);
 
   const identityQuery = useFilecoinIdentity(profile?.identity.identityCID, { enabled: loadFilecoin });
   const historyQuery = useFilecoinHistory(profile?.reputation.historyCID, { enabled: loadFilecoin });
@@ -83,19 +97,22 @@ export default function VerifyPage() {
     setSearchAddress(trimmed as `0x${string}`);
     setLoadFilecoin(false);
     setApiData(null);
+    setStoredData(null);
 
-    // Also fetch API-based reputation
     setApiLoading(true);
     try {
-      const res = await fetch("/api/reputation/calculate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ agentAddress: trimmed }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setApiData(data);
-      }
+      // Fetch stored agent data and compute reputation in parallel
+      const [storedRes, reputationRes] = await Promise.all([
+        fetch(`/api/agent/${trimmed}`).then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch("/api/reputation/calculate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ agentAddress: trimmed }),
+        }).then(r => r.ok ? r.json() : null).catch(() => null),
+      ]);
+
+      if (storedRes?.stored) setStoredData(storedRes);
+      if (reputationRes) setApiData(reputationRes);
     } catch {
       // Silently fail — on-chain data is primary
     } finally {
@@ -109,7 +126,7 @@ export default function VerifyPage() {
 
   const hasOnChainData = profile && Number(profile.reputation.totalScore) > 0;
   const hasFilecoinData = filecoinIdentity || filecoinHistory;
-  const showResults = profile || apiData;
+  const showResults = profile || apiData || storedData?.stored;
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
@@ -175,6 +192,36 @@ export default function VerifyPage() {
                     This agent is not registered on-chain yet. Use the Register page to submit an on-chain registration, or see the API reputation below.
                   </p>
                 )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Stored Registration Data */}
+          {storedData?.stored && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  Registered Agent
+                  <Badge className="bg-emerald-100 text-emerald-700">Stored</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 text-sm">
+                  <Row label="Name" value={storedData.name ?? "-"} />
+                  <Row label="Type" value={storedData.type ?? "-"} />
+                  <Row label="Capabilities" value={storedData.capabilities?.join(", ") ?? "-"} />
+                  {storedData.filecoin && (
+                    <>
+                      <Row label="Identity CID" value={truncateCid(storedData.filecoin.identityCID)} />
+                      <Row label="History CID" value={truncateCid(storedData.filecoin.historyCID)} />
+                      <Row label="Proof CID" value={truncateCid(storedData.filecoin.proofCID)} />
+                    </>
+                  )}
+                  {storedData.reputation && (
+                    <Row label="Stored Score" value={storedData.reputation.totalScore.toString()} />
+                  )}
+                  <Row label="Registered" value={storedData.registeredAt ? new Date(storedData.registeredAt).toLocaleString() : "-"} />
+                </div>
               </CardContent>
             </Card>
           )}

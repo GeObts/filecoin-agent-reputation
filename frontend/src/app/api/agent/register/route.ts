@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { ensureReputation } from "@/lib/services/init";
 import { getReputation } from "@/lib/services/reputation";
 import { uploadIdentity, uploadHistory, uploadProof } from "@/lib/synapse-client";
+import { saveAgent, isStoreAvailable } from "@/lib/store";
 import { withPayment, X402_PRICING } from "@/lib/x402";
 
 async function handler(req: NextRequest) {
@@ -45,15 +46,27 @@ async function handler(req: NextRequest) {
     const historyCID = await uploadHistory(agentId, actions);
     const proofCID = await uploadProof(agentId, proof);
 
+    // 4. Persist to KV store so anyone can look up this agent
+    if (isStoreAvailable()) {
+      await saveAgent(agentId, {
+        agentId,
+        name,
+        type: type || 'autonomous_agent',
+        capabilities: capabilities || [],
+        filecoin: { identityCID, historyCID, proofCID },
+        reputation: score,
+        proof,
+        registeredAt: new Date().toISOString(),
+        lastUpdated: new Date().toISOString(),
+      });
+    }
+
     return NextResponse.json({
       success: true,
       agentId,
-      filecoin: {
-        identityCID,
-        historyCID,
-        proofCID
-      },
+      filecoin: { identityCID, historyCID, proofCID },
       reputation: score,
+      proof,
       message: 'Agent registered with content-addressed CIDs'
     });
   } catch (error: unknown) {
