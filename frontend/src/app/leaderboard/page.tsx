@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -26,9 +26,28 @@ function getRankStyle(rank: number): string {
   return "font-medium";
 }
 
+interface StoredAgentItem {
+  address: string;
+  name: string;
+  type: string;
+  reputation?: { totalScore: number; breakdown?: Record<string, number>; actionCount?: number };
+  registeredAt?: string;
+}
+
 export default function LeaderboardPage() {
   const { data: agentCount, isLoading: countLoading } = useAgentCount();
   const count = agentCount ? Number(agentCount) : 0;
+
+  // Fetch stored agents from Redis
+  const [storedAgents, setStoredAgents] = useState<StoredAgentItem[]>([]);
+  const [storedLoading, setStoredLoading] = useState(true);
+  useEffect(() => {
+    fetch("/api/agents")
+      .then(r => r.ok ? r.json() : { agents: [] })
+      .then(data => setStoredAgents(data.agents ?? []))
+      .catch(() => {})
+      .finally(() => setStoredLoading(false));
+  }, []);
 
   const { data: addressResults } = useAgentAddresses(count);
   const addresses = (addressResults ?? [])
@@ -79,7 +98,20 @@ export default function LeaderboardPage() {
     .filter((a): a is NonNullable<typeof a> => !!a)
     .sort((a, b) => b.score - a.score);
 
-  const isLoading = countLoading || !agentResults || !scoreResults;
+  // Merge stored agents not already on-chain
+  const storedOnly = storedAgents
+    .filter(sa => !addresses.includes(sa.address as `0x${string}`))
+    .map(sa => ({
+      address: sa.address as `0x${string}`,
+      score: sa.reputation?.totalScore ?? 0,
+      isActive: true,
+      registeredAt: BigInt(Math.floor(new Date(sa.registeredAt ?? Date.now()).getTime() / 1000)),
+      breakdown: null,
+    }));
+
+  const allAgents = [...agents, ...storedOnly].sort((a, b) => b.score - a.score);
+  const totalCount = Math.max(count, allAgents.length);
+  const isLoading = (countLoading && storedLoading) || (!agentResults && storedLoading);
 
   const headerRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -101,7 +133,7 @@ export default function LeaderboardPage() {
       <div ref={cardRef}>
         <Card>
           <CardHeader>
-            <CardTitle>{count} Registered Agents</CardTitle>
+            <CardTitle>{totalCount} Registered Agents</CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -110,7 +142,7 @@ export default function LeaderboardPage() {
                   <TableRowSkeleton key={i} />
                 ))}
               </div>
-            ) : agents.length === 0 ? (
+            ) : allAgents.length === 0 ? (
               <p className="py-8 text-center text-muted-foreground">
                 No agents registered yet.
               </p>
@@ -128,7 +160,7 @@ export default function LeaderboardPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody ref={tbodyRef}>
-                    {agents.map((agent, i) => (
+                    {allAgents.map((agent, i) => (
                       <TableRow key={agent.address}>
                         <TableCell className={getRankStyle(i + 1)}>#{i + 1}</TableCell>
                         <TableCell>

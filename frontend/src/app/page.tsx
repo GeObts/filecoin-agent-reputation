@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { Bot, Crown, Hexagon, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -61,10 +61,29 @@ function ConnectYourAgent() {
   );
 }
 
+interface StoredAgentItem {
+  address: string;
+  name: string;
+  type: string;
+  reputation?: { totalScore: number };
+  registeredAt?: string;
+}
+
 export default function DashboardPage() {
   const { data: agentCount, isLoading: countLoading, error: countError } = useAgentCount();
   const count = agentCount ? Number(agentCount) : 0;
   const displayCount = Math.min(count, 5);
+
+  // Fetch stored agents from Redis
+  const [storedAgents, setStoredAgents] = useState<StoredAgentItem[]>([]);
+  const [storedLoading, setStoredLoading] = useState(true);
+  useEffect(() => {
+    fetch("/api/agents")
+      .then(r => r.ok ? r.json() : { agents: [] })
+      .then(data => setStoredAgents(data.agents ?? []))
+      .catch(() => {})
+      .finally(() => setStoredLoading(false));
+  }, []);
 
   const { data: addressResults } = useAgentAddresses(displayCount);
   const addresses = (addressResults ?? [])
@@ -122,7 +141,7 @@ export default function DashboardPage() {
 
       {/* Stats */}
       <section ref={statsRef} className="mb-12 grid gap-4 sm:grid-cols-3">
-        {countLoading ? (
+        {countLoading && storedLoading ? (
           <>
             <StatCardSkeleton />
             <StatCardSkeleton />
@@ -130,11 +149,11 @@ export default function DashboardPage() {
           </>
         ) : (
           <>
-            <StatCard title="Total Agents" value={count} icon={Bot} />
+            <StatCard title="Total Agents" value={Math.max(count, storedAgents.length)} icon={Bot} />
             <StatCard title="Network" value="Base Sepolia" icon={Hexagon} />
             <StatCard
               title="Leaderboard"
-              value={count > 0 ? "Live" : "No Agents"}
+              value={count > 0 || storedAgents.length > 0 ? "Live" : "No Agents"}
               icon={Crown}
             />
           </>
@@ -150,38 +169,53 @@ export default function DashboardPage() {
       <section ref={agentsRef}>
         <h2 className="mb-4 text-xl font-semibold">Registered Agents</h2>
         <div className="space-y-3">
-          {countLoading || !agentResults || !scoreResults ? (
+          {(countLoading && storedLoading) ? (
             Array.from({ length: 3 }).map((_, i) => <CardSkeleton key={i} />)
-          ) : count === 0 ? (
+          ) : count === 0 && storedAgents.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">
               No agents registered yet. Be the first!
             </p>
           ) : (
-            addresses.map((addr, i) => {
-              const agent = agentResults[i];
-              const score = scoreResults[i];
-              if (agent?.status !== "success" || score?.status !== "success")
-                return null;
+            <>
+              {/* On-chain agents */}
+              {addresses.map((addr, i) => {
+                const agent = agentResults?.[i];
+                const score = scoreResults?.[i];
+                if (agent?.status !== "success" || score?.status !== "success")
+                  return null;
 
-              const agentData = agent.result as {
-                owner: `0x${string}`;
-                identityCID: string;
-                currentStateCID: string;
-                registeredAt: bigint;
-                lastUpdated: bigint;
-                isActive: boolean;
-              };
+                const agentData = agent.result as {
+                  owner: `0x${string}`;
+                  identityCID: string;
+                  currentStateCID: string;
+                  registeredAt: bigint;
+                  lastUpdated: bigint;
+                  isActive: boolean;
+                };
 
-              return (
-                <AgentCard
-                  key={addr}
-                  address={addr}
-                  score={Number(score.result)}
-                  isActive={agentData.isActive}
-                  registeredAt={agentData.registeredAt}
-                />
-              );
-            })
+                return (
+                  <AgentCard
+                    key={addr}
+                    address={addr}
+                    score={Number(score.result)}
+                    isActive={agentData.isActive}
+                    registeredAt={agentData.registeredAt}
+                  />
+                );
+              })}
+              {/* Redis-stored agents (not yet on-chain) */}
+              {storedAgents
+                .filter(sa => !addresses.includes(sa.address as `0x${string}`))
+                .map(sa => (
+                  <AgentCard
+                    key={sa.address}
+                    address={sa.address as `0x${string}`}
+                    score={sa.reputation?.totalScore ?? 0}
+                    isActive={true}
+                    registeredAt={BigInt(Math.floor(new Date(sa.registeredAt ?? Date.now()).getTime() / 1000))}
+                  />
+                ))}
+            </>
           )}
         </div>
       </section>
