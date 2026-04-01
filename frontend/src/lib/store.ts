@@ -1,10 +1,21 @@
-import { kv } from "@vercel/kv";
+import Redis from "ioredis";
 
 /**
- * Persistent agent data store using Vercel KV (Redis).
+ * Persistent agent data store using Redis (via REDIS_URL).
  * Stores registration data, computed reputation, and CIDs
  * so any user can look up an agent by address.
  */
+
+let redis: Redis | null = null;
+
+function getRedis(): Redis {
+  if (!redis) {
+    const url = process.env.REDIS_URL;
+    if (!url) throw new Error("REDIS_URL not configured");
+    redis = new Redis(url, { lazyConnect: true, maxRetriesPerRequest: 2 });
+  }
+  return redis;
+}
 
 export interface StoredAgent {
   agentId: string;
@@ -39,9 +50,9 @@ function agentKey(address: string): string {
  */
 export async function saveAgent(address: string, data: StoredAgent): Promise<void> {
   try {
-    await kv.set(agentKey(address), data);
-    // Also add to the set of all registered agents
-    await kv.sadd("agents:all", address.toLowerCase());
+    const r = getRedis();
+    await r.set(agentKey(address), JSON.stringify(data));
+    await r.sadd("agents:all", address.toLowerCase());
   } catch (error) {
     console.error("[Store] Failed to save agent:", error);
   }
@@ -52,7 +63,9 @@ export async function saveAgent(address: string, data: StoredAgent): Promise<voi
  */
 export async function getAgent(address: string): Promise<StoredAgent | null> {
   try {
-    return await kv.get<StoredAgent>(agentKey(address));
+    const r = getRedis();
+    const raw = await r.get(agentKey(address));
+    return raw ? JSON.parse(raw) : null;
   } catch (error) {
     console.error("[Store] Failed to get agent:", error);
     return null;
@@ -64,7 +77,8 @@ export async function getAgent(address: string): Promise<StoredAgent | null> {
  */
 export async function getAllAgentAddresses(): Promise<string[]> {
   try {
-    return await kv.smembers("agents:all");
+    const r = getRedis();
+    return await r.smembers("agents:all");
   } catch (error) {
     console.error("[Store] Failed to get agent list:", error);
     return [];
@@ -72,8 +86,8 @@ export async function getAllAgentAddresses(): Promise<string[]> {
 }
 
 /**
- * Check if KV store is available (env vars set).
+ * Check if Redis store is available (env var set).
  */
 export function isStoreAvailable(): boolean {
-  return !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+  return !!process.env.REDIS_URL;
 }
