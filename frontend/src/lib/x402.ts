@@ -133,7 +133,7 @@ async function verifyPaymentOnChain(
   try {
     // Query Base Sepolia block explorer API
     const response = await fetch(
-      `https://api-sepolia.basescan.org/api?module=proxy&action=eth_getTransactionReceipt&txhash=${txHash}&apikey=YourApiKeyToken`
+      `https://api-sepolia.basescan.org/api?module=proxy&action=eth_getTransactionReceipt&txhash=${txHash}&apikey=${process.env.BASESCAN_API_KEY ?? ''}`
     );
 
     const data = await response.json();

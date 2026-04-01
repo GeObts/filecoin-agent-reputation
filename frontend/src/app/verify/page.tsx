@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, Search } from "lucide-react";
+import { CheckCircle, XCircle, Search, ShieldCheck, ShieldX } from "lucide-react";
 import { useAgentProfile } from "@/hooks/useAgentProfile";
+import { useProofHash, useVerifyProofHash } from "@/hooks/useReputationOracle";
 import { useFilecoinIdentity, useFilecoinHistory } from "@/hooks/useFilecoinData";
 import { isValidAddress, truncateCid } from "@/lib/utils";
 import { toast } from "sonner";
@@ -22,6 +23,20 @@ export default function VerifyPage() {
 
   const identityQuery = useFilecoinIdentity(profile?.identity.identityCID, { enabled: loadFilecoin });
   const historyQuery = useFilecoinHistory(profile?.reputation.historyCID, { enabled: loadFilecoin });
+
+  // On-chain proof hash verification
+  const { data: storedProofHash } = useProofHash(searchAddress);
+  const hasStoredProof = storedProofHash && storedProofHash !== "0x0000000000000000000000000000000000000000000000000000000000000000";
+
+  // Verify the proof hash matches (when user provides one)
+  const [claimedHash, setClaimedHash] = useState("");
+  const claimedBytes32 = claimedHash.startsWith("0x") && claimedHash.length === 66
+    ? (claimedHash as `0x${string}`)
+    : undefined;
+  const { data: proofValid, isLoading: verifyLoading } = useVerifyProofHash(
+    searchAddress,
+    claimedBytes32
+  );
 
   const filecoinLoading = identityQuery.isLoading || historyQuery.isLoading;
   const filecoinIdentity = identityQuery.data
@@ -111,9 +126,52 @@ export default function VerifyPage() {
                 <Row label="Identity CID" value={truncateCid(profile.identity.identityCID)} />
                 <Row label="History CID" value={truncateCid(profile.reputation.historyCID)} />
                 <Row label="Proof CID" value={truncateCid(profile.reputation.proofOfHistoryCID)} />
+                <Row label="Proof Hash" value={hasStoredProof ? `${storedProofHash.slice(0, 10)}...${storedProofHash.slice(-8)}` : "None"} />
               </div>
             </CardContent>
           </Card>
+
+          {/* Merkle Root Verification */}
+          {hasStoredProof && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ShieldCheck className="h-5 w-5" />
+                  Verify Merkle Root
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-3">
+                  This agent has an on-chain proof hash. Enter a Merkle root to verify it matches.
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Enter proof hash (0x...)"
+                    value={claimedHash}
+                    onChange={(e) => setClaimedHash(e.target.value)}
+                    className="font-mono text-xs"
+                  />
+                </div>
+                {claimedBytes32 && (
+                  <div className="mt-3 flex items-center gap-2">
+                    {verifyLoading ? (
+                      <span className="text-sm text-muted-foreground">Verifying on-chain...</span>
+                    ) : proofValid ? (
+                      <div className="flex items-center gap-2 text-emerald-600">
+                        <ShieldCheck className="h-5 w-5" />
+                        <span className="text-sm font-semibold">Merkle root verified on-chain</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-red-600">
+                        <ShieldX className="h-5 w-5" />
+                        <span className="text-sm font-semibold">Proof hash does not match</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Load Filecoin Button */}
           {!hasFilecoinData && (

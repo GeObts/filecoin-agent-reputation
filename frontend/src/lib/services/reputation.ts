@@ -40,7 +40,7 @@ export class ReputationService {
   async fetchBlockchainActivity(agentAddress: string): Promise<Action[]> {
     try {
       const response = await fetch(
-        `https://api-sepolia.basescan.org/api?module=account&action=txlist&address=${agentAddress}&startblock=0&endblock=99999999&sort=desc&apikey=YourApiKeyToken`
+        `https://api-sepolia.basescan.org/api?module=account&action=txlist&address=${agentAddress}&startblock=0&endblock=99999999&sort=desc&apikey=${process.env.BASESCAN_API_KEY ?? ''}`
       );
       
       const data = await response.json();

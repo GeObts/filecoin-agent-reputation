@@ -13,6 +13,7 @@ export interface Reputation {
   totalScore: bigint;
   historyCID: string;
   proofOfHistoryCID: string;
+  proofHash: `0x${string}`;
   lastCalculated: bigint;
   actionCount: bigint;
 }

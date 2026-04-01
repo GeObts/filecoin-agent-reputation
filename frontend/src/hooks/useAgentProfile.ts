@@ -32,6 +32,7 @@ export function useAgentProfile(address: `0x${string}` | undefined) {
         totalScore: reputation.data.totalScore,
         historyCID: reputation.data.historyCID,
         proofOfHistoryCID: reputation.data.proofOfHistoryCID,
+        proofHash: reputation.data.proofHash,
         lastCalculated: reputation.data.lastCalculated,
         actionCount: reputation.data.actionCount,
       },

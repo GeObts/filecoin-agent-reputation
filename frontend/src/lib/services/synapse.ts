@@ -1,6 +1,5 @@
 import { Synapse } from '@filoz/synapse-sdk';
-import { calibration } from '@filoz/synapse-core/chains';
-import { createWalletClient, http } from 'viem';
+import { http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 
 /**
