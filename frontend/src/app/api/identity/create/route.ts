@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ensureSynapse } from "@/lib/services/init";
-import { getSynapse } from "@/lib/services/synapse";
+import { uploadIdentity } from "@/lib/synapse-client";
 import { withPayment, X402_PRICING } from "@/lib/x402";
 
 async function handler(req: NextRequest) {
   try {
-    ensureSynapse();
     const body = await req.json();
     const { agentId, name, type, capabilities, metadata } = body;
 
@@ -16,8 +14,7 @@ async function handler(req: NextRequest) {
       );
     }
 
-    const synapse = getSynapse();
-    const cid = await synapse.uploadIdentity({
+    const cid = await uploadIdentity({
       agentId,
       name,
       type: type || 'autonomous_agent',
@@ -29,7 +26,7 @@ async function handler(req: NextRequest) {
       success: true,
       cid,
       agentId,
-      message: 'Identity created and uploaded to Filecoin'
+      message: 'Identity created with content-addressed CID'
     });
   } catch (error: unknown) {
     console.error('[API] Identity creation failed:', error);

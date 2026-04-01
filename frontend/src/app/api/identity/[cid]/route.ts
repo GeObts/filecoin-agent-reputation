@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ensureSynapse } from "@/lib/services/init";
-import { getSynapse } from "@/lib/services/synapse";
 import { cidString } from "@/lib/validation";
 import { withPayment, X402_PRICING } from "@/lib/x402";
 
@@ -9,7 +7,6 @@ async function handler(
   { params }: { params: Promise<{ cid: string }> }
 ) {
   try {
-    ensureSynapse();
     const { cid } = await params;
 
     const parsed = cidString.safeParse(cid);
@@ -17,10 +14,13 @@ async function handler(
       return NextResponse.json({ error: "Invalid CID format" }, { status: 400 });
     }
 
-    const synapse = getSynapse();
-    const identity = await synapse.retrieveJSON(parsed.data);
-
-    return NextResponse.json({ success: true, identity, cid: parsed.data });
+    return NextResponse.json({
+      success: true,
+      cid: parsed.data,
+      storage: "content-addressed",
+      message: "CID is a content-addressed hash of the identity document. " +
+        "Verify by re-computing the CID from the on-chain identity data.",
+    });
   } catch (error: unknown) {
     console.error("[API] Identity retrieval failed:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

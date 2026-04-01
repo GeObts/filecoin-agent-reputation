@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ensureSynapse } from "@/lib/services/init";
 import { ensureReputation } from "@/lib/services/init";
-import { getSynapse } from "@/lib/services/synapse";
 import { getReputation } from "@/lib/services/reputation";
+import { uploadIdentity, uploadHistory, uploadProof } from "@/lib/synapse-client";
 import { withPayment, X402_PRICING } from "@/lib/x402";
 
 async function handler(req: NextRequest) {
   try {
-    ensureSynapse();
     ensureReputation();
 
     const body = await req.json();
@@ -27,11 +25,10 @@ async function handler(req: NextRequest) {
       );
     }
 
-    const synapse = getSynapse();
     const reputation = getReputation();
 
-    // 1. Create and upload identity
-    const identityCID = await synapse.uploadIdentity({
+    // 1. Create and compute identity CID
+    const identityCID = await uploadIdentity({
       agentId,
       name,
       type: type || 'autonomous_agent',
@@ -44,9 +41,9 @@ async function handler(req: NextRequest) {
     const score = reputation.calculateReputation(actions);
     const proof = reputation.generateProof(actions);
 
-    // 3. Upload history and proof
-    const historyCID = await synapse.uploadHistory(agentId, actions);
-    const proofCID = await synapse.uploadProof(agentId, proof);
+    // 3. Compute history and proof CIDs
+    const historyCID = await uploadHistory(agentId, actions);
+    const proofCID = await uploadProof(agentId, proof);
 
     return NextResponse.json({
       success: true,
@@ -57,7 +54,7 @@ async function handler(req: NextRequest) {
         proofCID
       },
       reputation: score,
-      message: 'Agent fully registered on Filecoin'
+      message: 'Agent registered with content-addressed CIDs'
     });
   } catch (error: unknown) {
     console.error('[API] Agent registration failed:', error);
