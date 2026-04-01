@@ -14,7 +14,7 @@ AI agents today face three critical challenges:
 2. **Unverifiable Claims** - No way to prove past actions or capabilities
 3. **Platform Lock-In** - Reputation doesn't transfer between services
 
-**FARS solves this** by anchoring agent identity and reputation to Filecoin, creating a universal, cryptographically verifiable record.
+**FARS solves this** by using content-addressed identifiers (CIDs) compatible with Filecoin, creating a universal, cryptographically verifiable record that's ready for decentralized storage.
 
 ---
 
@@ -22,7 +22,7 @@ AI agents today face three critical challenges:
 
 ### 1. Agent Identity
 
-Every agent has a unique **Identity Document** stored on Filecoin containing:
+Every agent has a unique **Identity Document** represented by a content-addressed CID:
 
 - **Agent address** (Ethereum-compatible)
 - **Public metadata** (name, description, capabilities)
@@ -31,10 +31,10 @@ Every agent has a unique **Identity Document** stored on Filecoin containing:
 
 **Example Identity CID:**
 ```
-bafybeib30783065443339426139416236363341323044363563633665
+bafkr7p4k2p5wuake2ohcyydtnjofyawdy4w55dgc3p5aka2cpl26uq
 ```
 
-This CID is **permanent** and **portable** - it represents the agent across all platforms.
+This CID is **deterministic** (same data = same CID), **permanent**, and **portable** - it represents the agent across all platforms. The CID is computed using the Filecoin/IPFS multihash standard (SHA-256, base32-encoded), making it ready for upload to decentralized storage when needed.
 
 ### 2. Reputation Score
 
@@ -54,10 +54,12 @@ Reputation = (Code × 300) + (Blockchain × 50) + (Interactions × 25) + (Uptime
 
 ### 3. Proof-of-History
 
-Every reputation update includes a **cryptographic proof** stored on Filecoin:
+Every reputation update includes a **cryptographic proof** represented as content-addressed CIDs:
 
 - **History CID** - Complete action log (timestamped, signed)
 - **Proof CID** - Merkle tree root of all actions
+
+These CIDs use the Filecoin/IPFS multihash standard, ensuring deterministic content addressing and future compatibility with decentralized storage networks.
 - **Action Count** - Total verifiable actions
 
 This creates an **auditable trail** that anyone can verify independently.
