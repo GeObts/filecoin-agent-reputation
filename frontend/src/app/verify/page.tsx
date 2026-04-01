@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, Search, ShieldCheck, ShieldX } from "lucide-react";
+import { CheckCircle, XCircle, Search, ShieldCheck, ShieldX, Activity } from "lucide-react";
 import { useAgentProfile } from "@/hooks/useAgentProfile";
 import { useProofHash, useVerifyProofHash } from "@/hooks/useReputationOracle";
 import { useFilecoinIdentity, useFilecoinHistory } from "@/hooks/useFilecoinData";
@@ -14,12 +14,32 @@ import { isValidAddress, truncateCid } from "@/lib/utils";
 import { toast } from "sonner";
 import { useGsapEntrance, useGsapStagger } from "@/hooks/useGsap";
 
+interface ApiReputation {
+  success: boolean;
+  agentAddress: string;
+  actions: { timestamp: string; type: string; score: number; platform?: string }[];
+  reputation: {
+    totalScore: number;
+    breakdown: Record<string, number>;
+    actionCount: number;
+  };
+  proof: {
+    root: string;
+    leaves: string[];
+    actionCount: number;
+  };
+}
+
 export default function VerifyPage() {
   const [address, setAddress] = useState("");
   const [searchAddress, setSearchAddress] = useState<`0x${string}` | undefined>();
   const { profile, isLoading } = useAgentProfile(searchAddress);
 
   const [loadFilecoin, setLoadFilecoin] = useState(false);
+
+  // API-based reputation lookup (fallback when not on-chain)
+  const [apiData, setApiData] = useState<ApiReputation | null>(null);
+  const [apiLoading, setApiLoading] = useState(false);
 
   const identityQuery = useFilecoinIdentity(profile?.identity.identityCID, { enabled: loadFilecoin });
   const historyQuery = useFilecoinHistory(profile?.reputation.historyCID, { enabled: loadFilecoin });
@@ -62,6 +82,25 @@ export default function VerifyPage() {
     }
     setSearchAddress(trimmed as `0x${string}`);
     setLoadFilecoin(false);
+    setApiData(null);
+
+    // Also fetch API-based reputation
+    setApiLoading(true);
+    try {
+      const res = await fetch("/api/reputation/calculate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agentAddress: trimmed }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setApiData(data);
+      }
+    } catch {
+      // Silently fail — on-chain data is primary
+    } finally {
+      setApiLoading(false);
+    }
   };
 
   const handleLoadFilecoinData = () => {
@@ -70,6 +109,7 @@ export default function VerifyPage() {
 
   const hasOnChainData = profile && Number(profile.reputation.totalScore) > 0;
   const hasFilecoinData = filecoinIdentity || filecoinHistory;
+  const showResults = profile || apiData;
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
@@ -93,43 +133,81 @@ export default function VerifyPage() {
             className="font-mono"
           />
         </div>
-        <Button onClick={handleSearch} disabled={isLoading}>
+        <Button onClick={handleSearch} disabled={isLoading || apiLoading}>
           <Search className="mr-2 h-4 w-4" />
           Verify
         </Button>
       </div>
 
-      {isLoading && (
-        <p className="text-center text-muted-foreground py-8">Loading on-chain data...</p>
+      {(isLoading || apiLoading) && (
+        <p className="text-center text-muted-foreground py-8">Loading agent data...</p>
       )}
 
-      {profile && (
+      {showResults && (
         <div ref={resultsRef} className="space-y-6">
           {/* On-chain Data */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                On-Chain Data
+          {profile && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  On-Chain Data
+                  {hasOnChainData ? (
+                    <Badge className="bg-emerald-100 text-emerald-700">Found</Badge>
+                  ) : (
+                    <Badge className="bg-amber-100 text-amber-700">Not Registered</Badge>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
                 {hasOnChainData ? (
-                  <Badge className="bg-emerald-100 text-emerald-700">Found</Badge>
+                  <div className="space-y-2 text-sm">
+                    <Row label="Score" value={Number(profile.reputation.totalScore).toString()} />
+                    <Row label="Actions" value={Number(profile.reputation.actionCount).toString()} />
+                    <Row label="Active" value={profile.identity.isActive ? "Yes" : "No"} />
+                    <Row label="Has Proof" value={profile.hasProof ? "Yes" : "No"} />
+                    <Row label="Identity CID" value={truncateCid(profile.identity.identityCID)} />
+                    <Row label="History CID" value={truncateCid(profile.reputation.historyCID)} />
+                    <Row label="Proof CID" value={truncateCid(profile.reputation.proofOfHistoryCID)} />
+                    <Row label="Proof Hash" value={hasStoredProof ? `${storedProofHash.slice(0, 10)}...${storedProofHash.slice(-8)}` : "None"} />
+                  </div>
                 ) : (
-                  <Badge className="bg-red-100 text-red-700">Empty</Badge>
+                  <p className="text-sm text-muted-foreground">
+                    This agent is not registered on-chain yet. Use the Register page to submit an on-chain registration, or see the API reputation below.
+                  </p>
                 )}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2 text-sm">
-                <Row label="Score" value={Number(profile.reputation.totalScore).toString()} />
-                <Row label="Actions" value={Number(profile.reputation.actionCount).toString()} />
-                <Row label="Active" value={profile.identity.isActive ? "Yes" : "No"} />
-                <Row label="Has Proof" value={profile.hasProof ? "Yes" : "No"} />
-                <Row label="Identity CID" value={truncateCid(profile.identity.identityCID)} />
-                <Row label="History CID" value={truncateCid(profile.reputation.historyCID)} />
-                <Row label="Proof CID" value={truncateCid(profile.reputation.proofOfHistoryCID)} />
-                <Row label="Proof Hash" value={hasStoredProof ? `${storedProofHash.slice(0, 10)}...${storedProofHash.slice(-8)}` : "None"} />
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* API-Computed Reputation (always shown as fallback) */}
+          {apiData && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5" />
+                  Computed Reputation
+                  <Badge className="bg-blue-100 text-blue-700">API</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 text-sm">
+                  <Row label="Total Score" value={apiData.reputation.totalScore.toString()} />
+                  <Row label="Actions Tracked" value={apiData.reputation.actionCount.toString()} />
+                  <Row label="Merkle Root" value={`${apiData.proof.root.slice(0, 12)}...${apiData.proof.root.slice(-8)}`} />
+                  {Object.entries(apiData.reputation.breakdown).map(([key, val]) =>
+                    val > 0 ? (
+                      <Row key={key} label={key.replace(/([A-Z])/g, " $1").replace(/^./, s => s.toUpperCase())} value={val.toString()} />
+                    ) : null
+                  )}
+                </div>
+                {!hasOnChainData && (
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    This reputation was computed from blockchain activity. Register the agent on-chain to anchor it permanently.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Merkle Root Verification */}
           {hasStoredProof && (
@@ -174,7 +252,7 @@ export default function VerifyPage() {
           )}
 
           {/* Load Filecoin Button */}
-          {!hasFilecoinData && (
+          {profile && !hasFilecoinData && hasOnChainData && (
             <div className="text-center">
               <Button onClick={handleLoadFilecoinData} disabled={filecoinLoading || loadFilecoin} variant="outline">
                 {filecoinLoading ? "Loading Filecoin data..." : "Load Filecoin Data for Comparison"}
@@ -217,7 +295,7 @@ export default function VerifyPage() {
             <Card>
               <CardContent className="p-6">
                 <div className="flex items-center gap-3">
-                  {profile.hasProof ? (
+                  {profile?.hasProof ? (
                     <>
                       <CheckCircle className="h-8 w-8 text-emerald-600" />
                       <div>
@@ -245,7 +323,7 @@ export default function VerifyPage() {
         </div>
       )}
 
-      {searchAddress && !isLoading && !profile && (
+      {searchAddress && !isLoading && !apiLoading && !showResults && (
         <div className="text-center py-8">
           <p className="text-muted-foreground">No agent found at this address.</p>
         </div>
